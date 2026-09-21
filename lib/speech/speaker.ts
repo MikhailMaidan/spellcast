@@ -69,6 +69,8 @@ export interface Segment {
   parts: SegmentPart[];
   /** Multiplier of gapMs for the wait after this utterance. */
   pauseAfter: number;
+  /** Multiplier of the speech rate for this utterance. */
+  rateFactor: number;
   /** Pause-only segment (a pause token with nothing before it). */
   silent?: boolean;
   /** Index of the pause token whose pause follows this segment, for display. */
@@ -84,7 +86,7 @@ export function buildSegments(tokens: SpeechToken[], delivery: DeliveryMode, pau
       prev.pauseAfter = multiplier;
       prev.pauseToken = tokenIndex;
     } else {
-      segments.push({ text: '', parts: [], pauseAfter: multiplier, silent: true, pauseToken: tokenIndex });
+      segments.push({ text: '', parts: [], pauseAfter: multiplier, rateFactor: 1, silent: true, pauseToken: tokenIndex });
     }
   };
 
@@ -121,11 +123,11 @@ export function buildSegments(tokens: SpeechToken[], delivery: DeliveryMode, pau
         pauseAfter = t.pauseAfter ?? 1;
         j++;
       }
-      segments.push({ text, parts, pauseAfter });
+      segments.push({ text, parts, pauseAfter, rateFactor: 1 });
       i = j;
       continue;
     }
-    segments.push({ text: tok.text, parts: [{ token: i, offset: 0 }], pauseAfter: tok.pauseAfter ?? 1 });
+    segments.push({ text: tok.text, parts: [{ token: i, offset: 0 }], pauseAfter: tok.pauseAfter ?? 1, rateFactor: tok.rateFactor ?? 1 });
     i++;
   }
   return segments;
@@ -236,9 +238,10 @@ export class Speaker {
       }
 
       const u = new SpeechSynthesisUtterance(seg.text);
+      const rate = Math.min(10, Math.max(0.1, req.rate * seg.rateFactor));
       if (req.voice) u.voice = req.voice;
       u.lang = req.voice?.lang || req.lang;
-      u.rate = req.rate;
+      u.rate = rate;
       u.pitch = 1;
 
       const spokenAt = this.now();
@@ -265,7 +268,7 @@ export class Speaker {
         this.noteLatency(startedAtMs - spokenAt);
         fireUpTo(0, startedAtMs);
         // Without boundary events, estimate when each later token starts from the learned pace.
-        const perChar = (this.msPerChar ?? DEFAULT_MS_PER_CHAR) / Math.max(0.5, req.rate);
+        const perChar = (this.msPerChar ?? DEFAULT_MS_PER_CHAR) / Math.max(0.5, rate);
         for (let p = 1; p < seg.parts.length; p++) {
           const at = seg.parts[p].offset * perChar;
           estimateTimers.push(
@@ -283,7 +286,7 @@ export class Speaker {
         clearTimeout(endFallback);
         clearEstimates();
         const endedAtMs = this.now();
-        this.noteDuration(seg.text.length, endedAtMs - startedAtMs, req.rate);
+        this.noteDuration(seg.text.length, endedAtMs - startedAtMs, rate);
         fireUpTo(seg.parts.length - 1, endedAtMs);
         req.onTokenEnd?.(seg.parts[seg.parts.length - 1].token, endedAtMs);
         scheduleNext(si, startedAtMs, endedAtMs);
@@ -305,8 +308,9 @@ export class Speaker {
         const k = partIndexForChar(seg.parts, e.charIndex);
         if (k >= 0) fireUpTo(k, this.now());
       };
-      const startFallback = setTimeout(markStart, 600);
-      const endFallback = setTimeout(finish, fallbackTimeoutMs(seg.text, req.rate));
+      // Network voices can take well over half a second to start; only give up on `onstart` late.
+      const startFallback = setTimeout(markStart, 1500);
+      const endFallback = setTimeout(finish, fallbackTimeoutMs(seg.text, rate));
       this.current = u;
       window.speechSynthesis.speak(u);
     };

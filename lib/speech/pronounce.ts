@@ -5,9 +5,14 @@
 import type { LetterStyle, PronunciationColumn, ZeroStyle } from '@/types';
 import type { Rng } from '../rng';
 
+/**
+ * Spelled-out forms. Where the spec's spelling is not a real word ("jee", "el", "ar") a
+ * dictionary word with the same sound is used instead, because voices read two-letter
+ * non-words unpredictably.
+ */
 export const LETTERS_GB: Record<string, string> = {
-  A: 'ay', B: 'bee', C: 'see', D: 'dee', E: 'ee', F: 'eff', G: 'jee', H: 'aitch', I: 'eye', J: 'jay',
-  K: 'kay', L: 'el', M: 'em', N: 'en', O: 'oh', P: 'pee', Q: 'cue', R: 'ar', S: 'ess', T: 'tee',
+  A: 'ay', B: 'bee', C: 'see', D: 'dee', E: 'ee', F: 'eff', G: 'gee', H: 'aitch', I: 'eye', J: 'jay',
+  K: 'kay', L: 'ell', M: 'em', N: 'en', O: 'oh', P: 'pee', Q: 'cue', R: 'are', S: 'ess', T: 'tee',
   U: 'you', V: 'vee', W: 'double you', X: 'ex', Y: 'why', Z: 'zed',
 };
 

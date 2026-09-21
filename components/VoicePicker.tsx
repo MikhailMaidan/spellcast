@@ -66,6 +66,10 @@ export function VoicePicker({ voices, voiceURI, locale, onVoiceChange, onLocaleC
         </button>
       </div>
 
+      <p className="text-xs text-zinc-500">
+        “natural” and “good” voices are network voices: each utterance starts about 0.3–0.5 s after it is requested, which sets the floor for the gap.
+        “legacy” voices respond instantly but sound robotic. Chrome offers Google voices; Edge offers Microsoft “Online (Natural)” voices.
+      </p>
       {voices.length === 0 && <p className="text-xs text-amber-700 dark:text-amber-400">The browser has not reported any voices yet.</p>}
       {voiceURI && !selected && voices.length > 0 && (
         <p className="text-xs text-amber-700 dark:text-amber-400">The saved voice is not available on this device; a fallback is used.</p>

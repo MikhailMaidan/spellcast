@@ -91,6 +91,8 @@ export interface SpeechToken {
   pauseAfter?: number;
   /** True for pause-only tokens: nothing is spoken, only the pause is applied. */
   silent?: boolean;
+  /** Multiplier applied to the speech rate for this token (the intro is spoken a little quicker). */
+  rateFactor?: number;
 }
 
 export interface Item {

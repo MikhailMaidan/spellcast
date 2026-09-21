@@ -103,6 +103,8 @@ export default function Trainer() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
+  /** Measured delay between requesting an utterance and hearing it, for the current voice. */
+  const [voiceDelayMs, setVoiceDelayMs] = useState<number | null>(null);
 
   const stats = useMemo(() => computeSessionStats(session, settings.ignoreSpaces), [session, settings.ignoreSpaces]);
 
@@ -160,6 +162,7 @@ export default function Trainer() {
           setCurrentToken(-1);
           setGapRun(null);
           setDictationDone(true);
+          setVoiceDelayMs(getSpeaker().diagnostics.startLatencyMs);
         },
       });
     },
@@ -353,7 +356,7 @@ export default function Trainer() {
         column: columnForLang(lang),
         overrides: s.pronunciationOverrides,
         letterStyle: s.letterStyle,
-        announce: 'The reference is',
+        announce: 'Reference',
       });
       getSpeaker().speak({ tokens, voice: chosen, lang, rate: s.rate, delivery: s.delivery, continuousPause: s.continuousPause, getTiming });
     },
@@ -539,6 +542,7 @@ export default function Trainer() {
           {voice && phase !== 'ready' && (
             <span className="ml-3 normal-case tracking-normal text-zinc-400">
               {voice.name} · {voice.lang}
+              {voiceDelayMs !== null && ` · starts in ≈${Math.round(voiceDelayMs)} ms`}
             </span>
           )}
         </div>

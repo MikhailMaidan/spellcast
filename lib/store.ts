@@ -64,7 +64,11 @@ export function useHydrated(): boolean {
 
 const SERVER_SESSION: Session = { id: 'pending', startedAt: 0, attempts: [], settingsSnapshot: DEFAULT_SETTINGS };
 
-/** Current settings, or the previous version's settings minus the fields whose defaults changed. */
+/**
+ * Current settings, or the previous version's settings minus the fields whose defaults or
+ * meaning changed: delivery and letter style (new defaults), the rate (adaptive speed used
+ * to drift it) and the voice (voices are now ranked by quality).
+ */
 function loadSettingsRaw(): unknown {
   const current = loadJSON<unknown>(STORAGE_KEYS.settings, undefined);
   if (current !== undefined) return current;
@@ -72,8 +76,7 @@ function loadSettingsRaw(): unknown {
     const legacy = loadJSON<Record<string, unknown> | undefined>(key, undefined);
     if (legacy && typeof legacy === 'object') {
       const migrated = { ...legacy };
-      delete migrated.delivery;
-      delete migrated.continuousPause;
+      for (const field of ['delivery', 'continuousPause', 'letterStyle', 'rate', 'voiceURI']) delete migrated[field];
       return migrated;
     }
   }

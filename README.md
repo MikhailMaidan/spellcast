@@ -70,8 +70,8 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 | Content  | Difficulty preset (easy / medium / hard)                 | medium    |
 | Content  | Surname flavour (British / American / both)              | both      |
 | Content  | Read whole word first (surnames)                         | on        |
-| Content  | Announce type ("The postcode is" before spelling)       | on        |
-| Speech   | Locale and voice picker, grouped by accent, with a test button | en-GB, default voice |
+| Content  | Announce type ("Postcode" before spelling, spoken quickly) | on     |
+| Speech   | Locale and voice picker, grouped by accent and ranked by quality, with a test button | en-GB, best voice |
 | Speech   | Random accent each item                                  | off       |
 | Speech   | Speech rate 0.5–2.0                                      | 1.0       |
 | Speech   | Zero style (oh / zero / random)                          | random    |
@@ -110,11 +110,26 @@ In continuous delivery the same rules move the speech rate instead (100 ms of ga
 corresponds to 0.10 of rate). Both values are clamped and persisted, so the next session
 starts where the last one ended.
 
+### Voices
+
+Voices come from the browser. They are grouped by accent and ranked by quality:
+
+- **natural**: neural voices such as Microsoft "Online (Natural)" in Edge or "Enhanced"
+  voices on Apple devices;
+- **good**: the standard Google voices in Chrome and other modern voices;
+- **legacy, robotic**: the old Windows "Desktop" SAPI voices.
+
+The best voice of the chosen locale is picked by default. Natural and good voices are
+network voices, so each utterance starts roughly 0.3–0.5 s after it is requested; the app
+measures that delay per voice, shows it next to the voice name, and subtracts it from
+every gap, so the floor for the gap is about that delay. Legacy voices start instantly
+but sound robotic. "Random accent each item" avoids legacy voices when it can.
+
 ### Delivery and timing
 
-An item is spoken as one introductory phrase ("The surname is Bell, that's" / "The
-postcode is"), one pause, then the spelling. There are two ways to deliver the spelling
-(Settings → Timing):
+An item is spoken as one short introductory phrase ("Surname, Bell" / "Postcode"),
+spoken slightly quicker than the spelling, then one pause, then the spelling. There are
+two ways to deliver the spelling (Settings → Timing):
 
 - **Precise, token by token** (default): each token is its own utterance, so the gap
   slider sets the pause between letters exactly. *Pause after token* measures the gap
@@ -130,19 +145,21 @@ postcode is"), one pause, then the spelling. There are two ways to deliver the s
   voice's word-boundary events when it provides them (local voices do), otherwise from
   a learned characters-per-second estimate.
 
-The Web Speech API charges a start-up delay for every utterance: roughly 50–150 ms for a
-local voice and several hundred milliseconds for a Google network voice. Local voices are
-therefore listed first and chosen by default. The `/debug` page shows the measured start
-latency and speaking speed of the current voice.
+The `/debug` page shows the measured start latency and speaking speed of the current
+voice.
 
 ### Letter pronunciation
 
 By default the voice is handed the letter itself ("A", "W", "double L"), which every
 modern voice reads as the letter name with natural prosody. If a voice misreads a letter,
-switch *Letter pronunciation* to "spelled out" (the §6.2 map: "ay", "double you", "zed"
-or "zee" by voice language) or fill in a single cell of the pronunciation map to override
-just that letter. Digits and symbols are always spoken as words ("seven", "oh"/"zero",
-"dash", "slash").
+switch *Letter pronunciation* to "spelled out" (the §6.2 map with real-word spellings
+where the spec's were not words: "gee", "ell", "are", "double you", "zed" or "zee" by
+voice language) or fill in a single cell of the pronunciation map to override just that
+letter. Digits and symbols are always spoken as words ("seven", "oh"/"zero", "dash",
+"slash").
+
+Saved settings from earlier versions are migrated: the voice, rate, delivery and letter
+style are reset to the new defaults; everything else is kept.
 
 ## Project structure
 

@@ -20,6 +20,9 @@ export const RATE_STEP = 0.05;
 export const RATE_KEY_STEP = 0.05;
 export const RATE_KEY_FINE_STEP = 0.01;
 export const RATE_DEFAULT = 1;
+/** Adaptive speed never pushes the rate outside this band on its own (voices sound odd beyond it). */
+export const RATE_ADAPT_MIN = 0.7;
+export const RATE_ADAPT_MAX = 1.4;
 
 /** Snap to the 10 ms grid and clamp to the allowed range. */
 export function clampGap(ms: number): number {
@@ -103,10 +106,16 @@ export function adaptGap(outcome: AttemptOutcome, gapMs: number): AdaptiveResult
   return { kind: 'gap', previous: gapMs, next, delta: next - gapMs, reason, streakBonus };
 }
 
-/** Continuous delivery: the same rules move the speech rate (100 ms of gap ≙ 0.10 of rate). */
+/**
+ * Continuous delivery: the same rules move the speech rate (100 ms of gap ≙ 0.10 of rate).
+ * Speeding up never goes above RATE_ADAPT_MAX and slowing down never below RATE_ADAPT_MIN,
+ * unless the user had already set the rate beyond that band themselves.
+ */
 export function adaptRate(outcome: AttemptOutcome, rate: number): AdaptiveResult {
   const { deltaMs, reason, streakBonus } = adaptiveDelta(outcome);
-  const next = clampRate(rate - deltaMs / 1000);
+  const target = rate - deltaMs / 1000;
+  const bounded = deltaMs < 0 ? Math.min(target, Math.max(rate, RATE_ADAPT_MAX)) : Math.max(target, Math.min(rate, RATE_ADAPT_MIN));
+  const next = clampRate(bounded);
   return { kind: 'rate', previous: rate, next, delta: Math.round((next - rate) * 100) / 100, reason, streakBonus };
 }
 

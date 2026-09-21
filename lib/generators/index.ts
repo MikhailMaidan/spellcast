@@ -19,12 +19,12 @@ import { generateSurname } from './surname';
 import { generateUkPostcode } from './ukPostcode';
 import { generateUsZip } from './usZip';
 
-/** Spoken before the spelling when announceType is on (one natural phrase, one utterance). */
+/** Spoken before the spelling when announceType is on: one short word, one quick utterance. */
 export const ANNOUNCEMENTS: Record<ConcreteContentType, string> = {
-  surname: 'The surname is',
-  ukPostcode: 'The postcode is',
-  usZip: 'The zip code is',
-  alnum: 'The reference is',
+  surname: 'Surname',
+  ukPostcode: 'Postcode',
+  usZip: 'Zip code',
+  alnum: 'Reference',
 };
 
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {

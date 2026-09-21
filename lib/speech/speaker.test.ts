@@ -23,11 +23,12 @@ describe('buildSegments', () => {
     expect(buildSegments(postcode, 'continuous', 'long')[0].text).toBe('ess. double you. one. ay. oh. double ay');
   });
 
-  it('keeps the introductory phrase as its own utterance', () => {
-    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The surname is', readWholeFirst: true });
+  it('keeps the introductory phrase as its own quicker utterance', () => {
+    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'Surname', readWholeFirst: true });
     const segs = buildSegments(tokens, 'continuous', 'short');
-    expect(segs.map((s) => s.text)).toEqual(["The surname is Bell, that's", 'bee, ee, double el']);
-    expect(segs[0].pauseAfter).toBe(1);
+    expect(segs.map((s) => s.text)).toEqual(['Surname, Bell', 'bee, ee, double ell']);
+    expect(segs[0]).toMatchObject({ pauseAfter: 1, rateFactor: 1.15 });
+    expect(segs[1]).toMatchObject({ rateFactor: 1 });
     expect(segs[1].parts.map((p) => p.token)).toEqual([1, 2, 3]);
     const plain = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', letterStyle: 'plain' });
     expect(buildSegments(plain, 'continuous', 'short')[0].text).toBe('B, E, double L');
@@ -70,5 +71,6 @@ describe('fallbackTimeoutMs', () => {
     expect(fallbackTimeoutMs('double you')).toBe(1800);
     expect(fallbackTimeoutMs('double you', 2)).toBe(1000);
     expect(fallbackTimeoutMs('triple seven', 0.5)).toBe(4200);
+    expect(buildSegments([{ text: 'Reference', chars: '', rateFactor: 1.15 }, { text: 'ay', chars: 'A' }], 'token', 'short').map((s) => s.rateFactor)).toEqual([1.15, 1]);
   });
 });

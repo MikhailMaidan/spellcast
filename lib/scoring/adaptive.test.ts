@@ -45,9 +45,11 @@ describe('adaptRate', () => {
     expect(adaptRate({ ...clean, streak: 3 }, 1).next).toBe(1.15);
   });
 
-  it('clamps to the rate range', () => {
-    expect(adaptRate(clean, 1.95).next).toBe(2);
-    expect(adaptRate({ ...clean, correct: false, errors: 4, streak: 0 }, 0.55).next).toBe(0.5);
+  it('stays inside the adaptive band unless the user already went beyond it', () => {
+    expect(adaptRate(clean, 1.35).next).toBe(1.4);
+    expect(adaptRate(clean, 1.95).next).toBe(1.95);
+    expect(adaptRate({ ...clean, correct: false, errors: 4, streak: 0 }, 0.75).next).toBe(0.7);
+    expect(adaptRate({ ...clean, correct: false, errors: 4, streak: 0 }, 0.55).next).toBe(0.55);
   });
 });
 

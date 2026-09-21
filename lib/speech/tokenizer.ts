@@ -23,17 +23,19 @@ export interface TokenizeOptions {
 
 /** Pause multiplier for a space between halves of a postcode. */
 export const SPACE_PAUSE = 1.5;
+/** The intro is spoken a little quicker than the spelling. */
+export const INTRO_RATE_FACTOR = 1.15;
 
 const ALNUM = /[A-Za-z0-9]/;
 
 /**
- * The single introductory phrase, e.g. "The surname is Bell, that's" / "The postcode is" /
- * "Bell, that's", or null when neither option is on. One phrase, one utterance, one pause.
+ * The short introductory phrase: "Surname, Bell" / "Postcode" / "Bell", or null when
+ * neither option is on. One phrase, one utterance, one pause.
  */
 export function introText(target: string, announce?: string, readWholeFirst?: boolean): string | null {
-  const whole = readWholeFirst ? `${target}, that's` : null;
-  if (announce && whole) return `${announce} ${whole}`;
-  return announce ?? whole;
+  if (announce && readWholeFirst) return `${announce}, ${target}`;
+  if (announce) return announce;
+  return readWholeFirst ? target : null;
 }
 
 export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
@@ -49,7 +51,7 @@ export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
 
   const tokens: SpeechToken[] = [];
   const intro = introText(target, opts.announce, opts.readWholeFirst);
-  if (intro) tokens.push({ text: intro, chars: '' });
+  if (intro) tokens.push({ text: intro, chars: '', rateFactor: INTRO_RATE_FACTOR });
 
   let i = 0;
   while (i < target.length) {
