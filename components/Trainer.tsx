@@ -113,6 +113,10 @@ export default function Trainer() {
   const keystrokesRef = useRef<Keystroke[]>([]);
   const tokenStartsRef = useRef<(number | null)[]>([]);
   const dictationEndRef = useRef(0);
+  /** performance.now() when the last token finished, for the closing window. */
+  const dictationDoneAtRef = useRef(0);
+  /** performance.now() of the last edit in the input, for the silence timer. */
+  const lastEditAtRef = useRef<number | null>(null);
   const gapSeqRef = useRef(0);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef<Latest>({ phase, item, typed, dictationDone, replays, drawerOpen, statsOpen, settings, session, voices, voice, stats });
@@ -159,8 +163,10 @@ export default function Trainer() {
         onGap: (_i, ms) => setGapRun({ id: ++gapSeqRef.current, ms }),
         onDone: (t) => {
           dictationEndRef.current = t;
+          dictationDoneAtRef.current = performance.now();
           setCurrentToken(-1);
-          setGapRun(null);
+          // The bar now counts down the closing window.
+          setGapRun({ id: ++gapSeqRef.current, ms: latest.current.settings.endGraceMs });
           setDictationDone(true);
           setVoiceDelayMs(getSpeaker().diagnostics.startLatencyMs);
         },
@@ -185,6 +191,8 @@ export default function Trainer() {
       keystrokesRef.current = [];
       tokenStartsRef.current = [];
       dictationEndRef.current = 0;
+      dictationDoneAtRef.current = 0;
+      lastEditAtRef.current = null;
       setVoice(v);
       setItem(newItem);
       setTyped('');
@@ -274,6 +282,8 @@ export default function Trainer() {
     if (st.phase !== 'dictating' || !st.item || !st.settings.allowReplay || st.replays >= 1) return;
     keystrokesRef.current = [];
     dictationEndRef.current = 0;
+    dictationDoneAtRef.current = 0;
+    lastEditAtRef.current = null;
     setReplays((r) => r + 1);
     setDictationDone(false);
     runSpeech(st.item, st.voice, st.item.voiceLang);
@@ -340,6 +350,7 @@ export default function Trainer() {
         const t = getSpeaker().now();
         for (const ch of inserted) keystrokesRef.current.push({ t, ch });
       }
+      lastEditAtRef.current = performance.now();
       setTyped(value);
     },
     [getSpeaker],
@@ -374,14 +385,22 @@ export default function Trainer() {
     showToast('History cleared.');
   }, [clearSession, showToast]);
 
-  // Auto-submit: as soon as the typed length matches once dictation has finished, or after a silence.
+  // Auto-submit once dictation has finished: at once when the typed length matches, otherwise
+  // the item stays open for endGraceMs after the last token and for autoSubmitSilenceMs after
+  // the last edit, whichever ends later.
   useEffect(() => {
     if (phase !== 'dictating' || !dictationDone || !item) return;
     const targetLen = normaliseForScoring(item.target, settings.ignoreSpaces).length;
     const typedLen = normaliseForScoring(typed, settings.ignoreSpaces).length;
-    const timer = setTimeout(submit, typedLen >= targetLen ? 0 : settings.autoSubmitSilenceMs);
+    let wait = 0;
+    if (typedLen < targetLen) {
+      const graceDeadline = dictationDoneAtRef.current + settings.endGraceMs;
+      const silenceDeadline = (lastEditAtRef.current ?? 0) + settings.autoSubmitSilenceMs;
+      wait = Math.max(0, Math.max(graceDeadline, silenceDeadline) - performance.now());
+    }
+    const timer = setTimeout(submit, wait);
     return () => clearTimeout(timer);
-  }, [phase, dictationDone, item, typed, settings.ignoreSpaces, settings.autoSubmitSilenceMs, submit]);
+  }, [phase, dictationDone, item, typed, settings.ignoreSpaces, settings.autoSubmitSilenceMs, settings.endGraceMs, submit]);
 
   // Keyboard flow (§8).
   useEffect(() => {

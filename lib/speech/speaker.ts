@@ -211,6 +211,11 @@ export class Speaker {
 
     const scheduleNext = (si: number, startedAtMs: number, endedAtMs: number) => {
       const seg = segments[si];
+      if (si + 1 >= segments.length) {
+        // Nothing follows the last utterance: report done at once, the trainer owns the closing window.
+        step(si + 1);
+        return;
+      }
       if (seg.pauseToken !== undefined) req.onTokenStart?.(seg.pauseToken, this.now());
       const wanted = gapWaitMs(req.getTiming(), seg.pauseAfter, startedAtMs, endedAtMs);
       // Call speak() early by the engine's measured start latency so the heard silence matches.

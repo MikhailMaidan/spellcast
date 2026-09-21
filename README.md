@@ -57,7 +57,9 @@ Pages:
 | Result    | `S` / `T`               | Settings drawer / session summary                          |
 
 The attempt auto-submits when the typed length reaches the target length after dictation
-has finished, or after a configurable silence (default 1.5 s) once dictation has finished.
+has finished. Otherwise the item stays open for a configurable time after the last token
+(default 2 s, the timer bar counts it down) and for a configurable silence after your last
+keystroke (default 1.5 s), whichever ends later.
 
 `R` cannot be the replay key while dictating because R is a letter you may need to type,
 so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result view.
@@ -81,7 +83,8 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 | Timing   | Timing mode (precise): pause after token / fixed cadence | pause     |
 | Timing   | Gap 0–2000 ms in 10 ms steps, slider or exact number (always visible) | 500 ms |
 | Timing   | Adaptive speed                                           | on        |
-| Timing   | Auto-submit silence 0.5–3 s                              | 1.5 s     |
+| Timing   | After the last token: how long the item stays open, 0.5–10 s | 2 s   |
+| Timing   | Auto-submit silence after the last keystroke, 0.5–3 s    | 1.5 s     |
 | Feedback | Live token boxes while dictating                         | off       |
 | Feedback | Allow one replay                                         | on        |
 | Feedback | Ding on correct                                          | off       |

@@ -51,8 +51,10 @@ export interface Settings {
   continuousPause: ContinuousPause;
   /** Auto-adjust gapMs after each item. */
   adaptive: boolean;
-  /** Silence after dictation ends before the attempt auto-submits, 500..3000 ms. */
+  /** Silence after the last keystroke (once dictation has ended) before the attempt auto-submits, 500..3000 ms. */
   autoSubmitSilenceMs: number;
+  /** How long the item stays open after the last token has been spoken, 500..10000 ms. */
+  endGraceMs: number;
   /** "double L" / "triple 7" grouping. */
   grouping: GroupingMode;
   zeroStyle: ZeroStyle;

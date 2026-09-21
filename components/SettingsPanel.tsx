@@ -333,11 +333,14 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
           >
             <Range value={settings.gapMs} min={GAP_MIN} max={GAP_MAX} step={GAP_STEP} unit="ms" onChange={(gapMs) => updateSettings({ gapMs })} />
           </Row>
+          <Row label="After the last token" hint="how long the item stays open once the last token has been spoken; Enter or the full length finishes it earlier">
+            <Range value={settings.endGraceMs} min={500} max={10000} step={100} unit="ms" onChange={(endGraceMs) => updateSettings({ endGraceMs })} />
+          </Row>
+          <Row label="Auto-submit silence" hint="after your last keystroke, once the last token has been spoken">
+            <Range value={settings.autoSubmitSilenceMs} min={500} max={3000} step={100} unit="ms" onChange={(autoSubmitSilenceMs) => updateSettings({ autoSubmitSilenceMs })} />
+          </Row>
           <Row label="Adaptive speed" hint={settings.delivery === 'continuous' ? 'adjusts the speech rate after each item' : 'adjusts the gap after each item'}>
             <Toggle checked={settings.adaptive} onChange={(adaptive) => updateSettings({ adaptive })} />
-          </Row>
-          <Row label="Auto-submit silence" hint="after dictation ends">
-            <Range value={settings.autoSubmitSilenceMs} min={500} max={3000} step={100} unit="ms" onChange={(autoSubmitSilenceMs) => updateSettings({ autoSubmitSilenceMs })} />
           </Row>
         </Group>
 
