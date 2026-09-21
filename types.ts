@@ -18,6 +18,14 @@ export type PronunciationColumn = 'gb' | 'us';
  * (the token's own audio counts towards it, so engine latency is absorbed).
  */
 export type TimingMode = 'pause' | 'cadence';
+/**
+ * How tokens reach the synthesiser. 'token' = one utterance per token with timed gaps
+ * (precise, but every utterance pays the engine's start-up latency). 'continuous' = the
+ * whole spelling is one utterance at the voice's natural pace; speech rate is the speed control.
+ */
+export type DeliveryMode = 'token' | 'continuous';
+/** Separator between letters in continuous delivery: nothing, a comma, or a full stop. */
+export type ContinuousPause = 'none' | 'short' | 'long';
 
 export const CONCRETE_CONTENT_TYPES: readonly ConcreteContentType[] = ['surname', 'ukPostcode', 'usZip', 'alnum'];
 export const CONTENT_TYPES: readonly ContentType[] = [...CONCRETE_CONTENT_TYPES, 'mixed'];
@@ -33,6 +41,8 @@ export interface Settings {
   /** Gap between characters in ms, 0..2000 in 10 ms steps (meaning depends on timingMode). */
   gapMs: number;
   timingMode: TimingMode;
+  delivery: DeliveryMode;
+  continuousPause: ContinuousPause;
   /** Auto-adjust gapMs after each item. */
   adaptive: boolean;
   /** Silence after dictation ends before the attempt auto-submits, 500..3000 ms. */

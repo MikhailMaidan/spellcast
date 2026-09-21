@@ -6,12 +6,7 @@ import {
   type ConcreteContentType,
   type Settings,
 } from '@/types';
-import { clampGap, GAP_DEFAULT } from './scoring/adaptive';
-
-/** SpeechSynthesisUtterance.rate range exposed in settings. */
-export const RATE_MIN = 0.5;
-export const RATE_MAX = 2;
-export const RATE_STEP = 0.05;
+import { clampGap, clampRate, GAP_DEFAULT, RATE_DEFAULT } from './scoring/adaptive';
 
 export const DEFAULT_SETTINGS: Settings = {
   contentType: 'mixed',
@@ -20,6 +15,8 @@ export const DEFAULT_SETTINGS: Settings = {
   surnameFlavour: 'both',
   gapMs: GAP_DEFAULT,
   timingMode: 'pause',
+  delivery: 'continuous',
+  continuousPause: 'short',
   adaptive: true,
   autoSubmitSilenceMs: 1500,
   grouping: 'random',
@@ -27,7 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   voiceURI: null,
   locale: 'en-GB',
   randomAccent: false,
-  rate: 1,
+  rate: RATE_DEFAULT,
   announceType: true,
   readWholeFirst: true,
   allowReplay: true,
@@ -73,6 +70,8 @@ export function sanitiseSettings(raw: unknown): Settings {
     surnameFlavour: oneOf(r.surnameFlavour, ['british', 'american', 'both'] as const, d.surnameFlavour),
     gapMs: clampGap(num(r.gapMs, 0, 10000, d.gapMs)),
     timingMode: oneOf(r.timingMode, ['pause', 'cadence'] as const, d.timingMode),
+    delivery: oneOf(r.delivery, ['token', 'continuous'] as const, d.delivery),
+    continuousPause: oneOf(r.continuousPause, ['none', 'short', 'long'] as const, d.continuousPause),
     adaptive: bool(r.adaptive, d.adaptive),
     autoSubmitSilenceMs: num(r.autoSubmitSilenceMs, 500, 3000, d.autoSubmitSilenceMs),
     grouping: oneOf(r.grouping, ['never', 'always', 'random'] as const, d.grouping),
@@ -80,7 +79,7 @@ export function sanitiseSettings(raw: unknown): Settings {
     voiceURI: typeof r.voiceURI === 'string' && r.voiceURI ? r.voiceURI : null,
     locale: oneOf(r.locale, LOCALES, d.locale),
     randomAccent: bool(r.randomAccent, d.randomAccent),
-    rate: num(r.rate, RATE_MIN, RATE_MAX, d.rate),
+    rate: clampRate(num(r.rate, 0, 10, d.rate)),
     announceType: bool(r.announceType, d.announceType),
     readWholeFirst: bool(r.readWholeFirst, d.readWholeFirst),
     allowReplay: bool(r.allowReplay, d.allowReplay),

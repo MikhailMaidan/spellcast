@@ -43,8 +43,8 @@ Pages:
 
 | State     | Key                     | Action                                                     |
 | --------- | ----------------------- | ---------------------------------------------------------- |
-| any       | `[` / `]`               | Gap between characters −50 / +50 ms (takes effect from the next token) |
-| any       | `{` / `}`               | Gap between characters −10 / +10 ms                        |
+| any       | `[` / `]`               | Faster / slower: rate ±0.05 in continuous delivery, gap ∓50 ms in token delivery (applies from the next token) |
+| any       | `{` / `}`               | Fine step: rate ±0.01 or gap ∓10 ms                        |
 | any       | `Esc`                   | Close the settings drawer or the summary; otherwise abort the item (not scored) |
 | Ready     | `Space` / `Enter`       | Start an item                                              |
 | Ready     | `S` / `T`               | Settings drawer / session summary                          |
@@ -76,8 +76,10 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 | Speech   | Speech rate 0.5–2.0                                      | 1.0       |
 | Speech   | Zero style (oh / zero / random)                          | random    |
 | Speech   | Grouping "double L" / "triple 7" (never / always / random) | random  |
-| Timing   | Timing mode: pause after token / fixed cadence           | pause     |
-| Timing   | Gap between tokens 0–2000 ms in 10 ms steps, slider or exact number | 800 ms |
+| Timing   | Delivery: continuous (one utterance) / token by token (timed gaps) | continuous |
+| Timing   | Pause between letters (continuous): none / comma / full stop | comma  |
+| Timing   | Timing mode (token): pause after token / fixed cadence   | pause     |
+| Timing   | Gap between tokens (token) 0–2000 ms in 10 ms steps, slider or exact number | 800 ms |
 | Timing   | Adaptive speed                                           | on        |
 | Timing   | Auto-submit silence 0.5–3 s                              | 1.5 s     |
 | Feedback | Live token boxes while dictating                         | off       |
@@ -103,25 +105,33 @@ After each attempt the gap for the next item changes:
 | Two or more wrong, or a replay used                             | +150 ms |
 | Every third consecutive correct item                            | extra −50 ms |
 
-The gap is clamped to 0–2.0 s and persisted, so the next session starts where the last
-one ended.
+In continuous delivery the same rules move the speech rate instead (100 ms of gap
+corresponds to 0.10 of rate). Both values are clamped and persisted, so the next session
+starts where the last one ended.
 
-### Timing modes
+### Delivery and timing
 
-The gap can be applied in two ways (Settings → Timing):
+The Web Speech API charges a start-up delay for every utterance: roughly 50–150 ms for a
+local voice and several hundred milliseconds for a Google network voice. That delay is
+the reason a "gap" setting alone can never make dictation fast, so there are two ways to
+deliver an item (Settings → Timing):
 
-- **Pause after token** (default): the gap is silence measured from the moment the engine
-  finishes speaking a token. The interval you hear is therefore engine start-up latency +
-  the token's audio + the gap.
-- **Fixed cadence**: the gap is the interval from one token's *start* to the next token's
-  start. The token's own audio and the engine latency are absorbed by the gap, so letters
-  arrive on a steady beat. If a token's audio is longer than the gap, the next token
-  follows immediately.
+- **Continuous** (default): the whole spelling is one utterance, "ess, double you, one,
+  ay", spoken at the voice's natural pace with no per-letter delay. *Pause between
+  letters* picks the separator (nothing, a comma or a full stop); *speech rate* is the
+  fine speed control and adaptive speed moves it. A space in the target (postcode halves)
+  becomes a full stop. Token progress comes from the voice's word-boundary events when it
+  provides them (local voices do), otherwise from a learned characters-per-second
+  estimate, so the live boxes and the keystroke timing are approximate on network voices.
+- **Token by token**: one utterance per token with an exact gap, for slow, deliberate
+  practice. *Pause after token* measures the gap from the moment a token finishes;
+  *fixed cadence* measures it from the moment a token starts, so letters land on a steady
+  beat. The engine's measured start-up delay is subtracted from every wait so the heard
+  silence is close to the configured gap. 0 ms means "as fast as the voice allows".
 
-In both modes 0 ms means "as fast as the voice allows". The floor is set by the speech
-engine: every token is its own utterance, and Chrome needs roughly 50–150 ms to start a
-local voice and noticeably more for a Google network voice. To go faster, pick a local
-voice, raise the speech rate (shorter tokens) and use cadence mode.
+Local voices are listed first and chosen by default because they start much faster than
+network voices. The `/debug` page shows the measured start latency and speaking speed of
+the current voice.
 
 ## Project structure
 

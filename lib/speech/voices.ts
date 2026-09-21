@@ -32,7 +32,7 @@ export function isNetworkVoice(voice: SpeechSynthesisVoice): boolean {
 }
 
 export function voiceLabel(voice: SpeechSynthesisVoice): string {
-  return `${voice.name} (${isNetworkVoice(voice) ? 'network' : 'local'})`;
+  return `${voice.name} (${isNetworkVoice(voice) ? 'network, slower start' : 'local'})`;
 }
 
 export function getVoicesNow(): SpeechSynthesisVoice[] {
@@ -52,6 +52,9 @@ function sortVoices(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
     const la = normaliseLang(a.lang);
     const lb = normaliseLang(b.lang);
     if (la !== lb) return la.localeCompare(lb);
+    // Local voices start much faster than network ("Google …") voices, so they come first
+    // and become the default pick for a locale.
+    if (a.localService !== b.localService) return a.localService ? -1 : 1;
     if (a.default !== b.default) return a.default ? -1 : 1;
     return a.name.localeCompare(b.name);
   });

@@ -7,6 +7,8 @@ import {
   PRESETS,
   type ConcreteContentType,
   type ContentType,
+  type ContinuousPause,
+  type DeliveryMode,
   type GroupingMode,
   type Preset,
   type SurnameFlavour,
@@ -14,8 +16,20 @@ import {
   type ZeroStyle,
 } from '@/types';
 import { CONTENT_TYPE_LABELS } from '@/lib/generators';
-import { GAP_DEFAULT, GAP_KEY_FINE_STEP, GAP_KEY_STEP, GAP_MAX, GAP_MIN, GAP_STEP } from '@/lib/scoring/adaptive';
-import { RATE_MAX, RATE_MIN, RATE_STEP } from '@/lib/settings';
+import {
+  GAP_DEFAULT,
+  GAP_KEY_FINE_STEP,
+  GAP_KEY_STEP,
+  GAP_MAX,
+  GAP_MIN,
+  GAP_STEP,
+  RATE_DEFAULT,
+  RATE_KEY_FINE_STEP,
+  RATE_KEY_STEP,
+  RATE_MAX,
+  RATE_MIN,
+  RATE_STEP,
+} from '@/lib/scoring/adaptive';
 import { PronunciationEditor } from './PronunciationEditor';
 import { useTrainer } from './SettingsProvider';
 import { VoicePicker } from './VoicePicker';
@@ -219,7 +233,14 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
           <Row label="Random accent each item" hint="a different English voice per item">
             <Toggle checked={settings.randomAccent} onChange={(randomAccent) => updateSettings({ randomAccent })} />
           </Row>
-          <Row label="Speech rate" hint="how fast each token itself is spoken">
+          <Row
+            label="Speech rate"
+            hint={
+              settings.delivery === 'continuous'
+                ? `the speed control in continuous delivery · [ ] ±${RATE_KEY_STEP} · { } ±${RATE_KEY_FINE_STEP}`
+                : 'how fast each token itself is spoken'
+            }
+          >
             <Range value={settings.rate} min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} unit="×" decimals={2} onChange={(rate) => updateSettings({ rate })} />
           </Row>
           <Row label="Zero style">
@@ -248,29 +269,62 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
 
         <Group title="Timing">
           <Row
-            label="Timing mode"
+            label="Delivery"
             hint={
-              settings.timingMode === 'cadence'
-                ? 'each token starts a fixed interval after the previous one started'
-                : 'silence after each token has finished speaking'
+              settings.delivery === 'continuous'
+                ? 'the whole spelling is one utterance at the voice’s natural pace; no per-letter start-up delay'
+                : 'one utterance per token with an exact gap; every token pays the voice’s start-up delay'
             }
           >
-            <Select<TimingMode>
-              value={settings.timingMode}
+            <Select<DeliveryMode>
+              value={settings.delivery}
               options={[
-                { value: 'pause', label: 'pause after token' },
-                { value: 'cadence', label: 'fixed cadence' },
+                { value: 'continuous', label: 'continuous (fast, natural)' },
+                { value: 'token', label: 'token by token (timed gaps)' },
               ]}
-              onChange={(timingMode) => updateSettings({ timingMode })}
+              onChange={(delivery) => updateSettings({ delivery })}
             />
           </Row>
-          <Row
-            label={settings.timingMode === 'cadence' ? 'Interval between tokens' : 'Gap between tokens'}
-            hint={`[ ] ±${GAP_KEY_STEP} ms · { } ±${GAP_KEY_FINE_STEP} ms · 0 = as fast as the voice allows`}
-          >
-            <Range value={settings.gapMs} min={GAP_MIN} max={GAP_MAX} step={GAP_STEP} unit="ms" onChange={(gapMs) => updateSettings({ gapMs })} />
-          </Row>
-          <Row label="Adaptive speed">
+          {settings.delivery === 'continuous' ? (
+            <Row label="Pause between letters" hint="the voice decides the exact length; use speech rate for fine control">
+              <Select<ContinuousPause>
+                value={settings.continuousPause}
+                options={[
+                  { value: 'none', label: 'none' },
+                  { value: 'short', label: 'short (comma)' },
+                  { value: 'long', label: 'long (full stop)' },
+                ]}
+                onChange={(continuousPause) => updateSettings({ continuousPause })}
+              />
+            </Row>
+          ) : (
+            <>
+              <Row
+                label="Timing mode"
+                hint={
+                  settings.timingMode === 'cadence'
+                    ? 'each token starts a fixed interval after the previous one started'
+                    : 'silence after each token has finished speaking'
+                }
+              >
+                <Select<TimingMode>
+                  value={settings.timingMode}
+                  options={[
+                    { value: 'pause', label: 'pause after token' },
+                    { value: 'cadence', label: 'fixed cadence' },
+                  ]}
+                  onChange={(timingMode) => updateSettings({ timingMode })}
+                />
+              </Row>
+              <Row
+                label={settings.timingMode === 'cadence' ? 'Interval between tokens' : 'Gap between tokens'}
+                hint={`[ ] ±${GAP_KEY_STEP} ms · { } ±${GAP_KEY_FINE_STEP} ms · 0 = as fast as the voice allows`}
+              >
+                <Range value={settings.gapMs} min={GAP_MIN} max={GAP_MAX} step={GAP_STEP} unit="ms" onChange={(gapMs) => updateSettings({ gapMs })} />
+              </Row>
+            </>
+          )}
+          <Row label="Adaptive speed" hint={settings.delivery === 'continuous' ? 'adjusts the speech rate after each item' : 'adjusts the gap after each item'}>
             <Toggle checked={settings.adaptive} onChange={(adaptive) => updateSettings({ adaptive })} />
           </Row>
           <Row label="Auto-submit silence" hint="after dictation ends">
@@ -304,7 +358,7 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
               <PronunciationEditor overrides={settings.pronunciationOverrides} onChange={(pronunciationOverrides) => updateSettings({ pronunciationOverrides })} />
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className={button} onClick={() => updateSettings({ gapMs: GAP_DEFAULT })}>
+              <button type="button" className={button} onClick={() => updateSettings({ gapMs: GAP_DEFAULT, rate: RATE_DEFAULT })}>
                 Reset speed to default
               </button>
               <button type="button" className={button} onClick={onExport}>

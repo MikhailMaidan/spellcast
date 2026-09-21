@@ -7,7 +7,7 @@ import { useTrainer } from '@/components/SettingsProvider';
 import { VoicePicker } from '@/components/VoicePicker';
 import { CONTENT_TYPE_LABELS, createItem } from '@/lib/generators';
 import { columnForLang, defaultSpokenForm, PRONOUNCEABLE_CHARS } from '@/lib/speech/pronounce';
-import { Speaker } from '@/lib/speech/speaker';
+import { Speaker, type SpeakerDiagnostics } from '@/lib/speech/speaker';
 import { tokenize } from '@/lib/speech/tokenizer';
 import { useVoices } from '@/lib/speech/useVoices';
 import { langForLocale, resolveVoice } from '@/lib/speech/voices';
@@ -24,6 +24,7 @@ export default function DebugPage() {
   const [text, setText] = useState('SW1A 0AA');
   const [batch, setBatch] = useState(0);
   const [speaking, setSpeaking] = useState(-1);
+  const [diag, setDiag] = useState<SpeakerDiagnostics | null>(null);
   const speakerRef = useRef<Speaker | null>(null);
 
   const getSpeaker = useCallback(() => {
@@ -61,9 +62,14 @@ export default function DebugPage() {
       voice: resolved.voice,
       lang,
       rate: settings.rate,
+      delivery: settings.delivery,
+      continuousPause: settings.continuousPause,
       getTiming: () => ({ gapMs: settings.gapMs, mode: settings.timingMode }),
       onTokenStart: (i) => setSpeaking(i),
-      onDone: () => setSpeaking(-1),
+      onDone: () => {
+        setSpeaking(-1);
+        setDiag(getSpeaker().diagnostics);
+      },
     });
   };
   const stop = () => {
@@ -79,6 +85,8 @@ export default function DebugPage() {
       voice: chosen,
       lang: l,
       rate: settings.rate,
+      delivery: settings.delivery,
+      continuousPause: settings.continuousPause,
       getTiming: () => ({ gapMs: settings.gapMs, mode: settings.timingMode }),
     });
   };
@@ -113,7 +121,7 @@ export default function DebugPage() {
               ■ Stop
             </button>
             <span className="text-xs text-zinc-500">
-              {settings.timingMode === 'cadence' ? 'cadence' : 'gap'} {settings.gapMs} ms · rate {settings.rate.toFixed(2)} · grouping {settings.grouping} · zero {settings.zeroStyle} · column {column}
+              delivery {settings.delivery} · {settings.timingMode === 'cadence' ? 'cadence' : 'gap'} {settings.gapMs} ms · rate {settings.rate.toFixed(2)} · grouping {settings.grouping} · zero {settings.zeroStyle} · column {column}
             </span>
           </div>
           <p className="flex flex-wrap gap-1 font-mono text-sm">
@@ -123,6 +131,11 @@ export default function DebugPage() {
               </span>
             ))}
           </p>
+          {diag && (
+            <p className="text-xs text-zinc-500">
+              measured: voice start latency ≈ {Math.round(diag.startLatencyMs ?? 0)} ms · ≈ {Math.round(diag.msPerCharAtRate1 ?? 0)} ms per character at rate 1
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-medium">Voice</h2>

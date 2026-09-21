@@ -5,7 +5,17 @@ import type { Attempt, Item, Session, Settings } from '@/types';
 import { playDing } from '@/lib/audio';
 import { CONTENT_TYPE_LABELS, createItem } from '@/lib/generators';
 import { randomSeed } from '@/lib/rng';
-import { adaptGap, clampGap, GAP_KEY_FINE_STEP, GAP_KEY_STEP, type AdaptiveResult } from '@/lib/scoring/adaptive';
+import {
+  adaptGap,
+  adaptRate,
+  clampGap,
+  clampRate,
+  GAP_KEY_FINE_STEP,
+  GAP_KEY_STEP,
+  RATE_KEY_FINE_STEP,
+  RATE_KEY_STEP,
+  type AdaptiveResult,
+} from '@/lib/scoring/adaptive';
 import { diffStrings, normaliseForScoring } from '@/lib/scoring/diff';
 import { analyseKeystrokes, computeSessionStats, type SessionStats } from '@/lib/scoring/stats';
 import { exportSessionJSON } from '@/lib/session';
@@ -136,6 +146,8 @@ export default function Trainer() {
         voice: v,
         lang,
         rate: latest.current.settings.rate,
+        delivery: latest.current.settings.delivery,
+        continuousPause: latest.current.settings.continuousPause,
         getTiming,
         onTokenStart: (i, t) => {
           tokenStartsRef.current[i] = t;
@@ -228,8 +240,10 @@ export default function Trainer() {
 
     let adaptation: AdaptiveResult | null = null;
     if (s.adaptive) {
-      adaptation = adaptGap({ gapMs: s.gapMs, correct: diff.correct, errors: diff.errors, replays: st.replays, lagged: lag.lagged, streak });
-      if (adaptation.nextGapMs !== s.gapMs) updateSettings({ gapMs: adaptation.nextGapMs });
+      const outcome = { correct: diff.correct, errors: diff.errors, replays: st.replays, lagged: lag.lagged, streak };
+      adaptation = s.delivery === 'continuous' ? adaptRate(outcome, s.rate) : adaptGap(outcome, s.gapMs);
+      if (adaptation.kind === 'gap' && adaptation.next !== s.gapMs) updateSettings({ gapMs: adaptation.next });
+      if (adaptation.kind === 'rate' && adaptation.next !== s.rate) updateSettings({ rate: adaptation.next });
     }
     addAttempt(attempt);
     if (diff.correct && s.ding) playDing();
@@ -275,15 +289,23 @@ export default function Trainer() {
       voice: st.voice,
       lang: st.item.voiceLang,
       rate: st.settings.rate,
+      delivery: st.settings.delivery,
+      continuousPause: st.settings.continuousPause,
       getTiming,
       onTokenStart: (i) => setCurrentToken(i),
       onDone: () => setCurrentToken(-1),
     });
   }, [getSpeaker, getTiming]);
 
-  const adjustGap = useCallback(
-    (delta: number) => {
-      updateSettings({ gapMs: clampGap(latest.current.settings.gapMs + delta) });
+  /** [ and { = faster, ] and } = slower: the gap in token delivery, the speech rate in continuous delivery. */
+  const adjustSpeed = useCallback(
+    (direction: 1 | -1, fine: boolean) => {
+      const s = latest.current.settings;
+      if (s.delivery === 'continuous') {
+        updateSettings({ rate: clampRate(s.rate - direction * (fine ? RATE_KEY_FINE_STEP : RATE_KEY_STEP)) });
+      } else {
+        updateSettings({ gapMs: clampGap(s.gapMs + direction * (fine ? GAP_KEY_FINE_STEP : GAP_KEY_STEP)) });
+      }
     },
     [updateSettings],
   );
@@ -326,7 +348,7 @@ export default function Trainer() {
       const chosen = v ?? resolveVoice(latest.current.voices, { voiceURI: null, locale: s.locale }).voice;
       const lang = chosen?.lang || langForLocale(s.locale);
       const tokens = tokenize('JZ0 7LL', { grouping: 'always', zeroStyle: 'oh', column: columnForLang(lang), overrides: s.pronunciationOverrides });
-      getSpeaker().speak({ tokens, voice: chosen, lang, rate: s.rate, getTiming });
+      getSpeaker().speak({ tokens, voice: chosen, lang, rate: s.rate, delivery: s.delivery, continuousPause: s.continuousPause, getTiming });
     },
     [getSpeaker, getTiming],
   );
@@ -367,8 +389,7 @@ export default function Trainer() {
       if (key === '[' || key === ']' || key === '{' || key === '}') {
         e.preventDefault();
         const fine = key === '{' || key === '}';
-        const direction = key === '[' || key === '{' ? -1 : 1;
-        adjustGap(direction * (fine ? GAP_KEY_FINE_STEP : GAP_KEY_STEP));
+        adjustSpeed(key === '[' || key === '{' ? -1 : 1, fine);
         return;
       }
       if (key === 'Escape') {
@@ -431,7 +452,7 @@ export default function Trainer() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [abort, adjustGap, closeOverlays, listenAgain, openSettings, openStats, replay, retry, startItem, submit]);
+  }, [abort, adjustSpeed, closeOverlays, listenAgain, openSettings, openStats, replay, retry, startItem, submit]);
 
   // Focus management: the input regains focus on every state change and on any click on the page.
   useEffect(() => {
@@ -476,7 +497,15 @@ export default function Trainer() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <StatsBar stats={stats} gapMs={settings.gapMs} timingMode={settings.timingMode} onOpenSettings={openSettings} onOpenStats={openStats} />
+      <StatsBar
+        stats={stats}
+        gapMs={settings.gapMs}
+        rate={settings.rate}
+        delivery={settings.delivery}
+        timingMode={settings.timingMode}
+        onOpenSettings={openSettings}
+        onOpenStats={openStats}
+      />
 
       {!speechOk && (
         <div className="bg-amber-100 px-6 py-2 text-center text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">

@@ -1,7 +1,7 @@
 'use client';
 
 import type { Attempt, Item } from '@/types';
-import { formatGap, type AdaptiveResult } from '@/lib/scoring/adaptive';
+import { formatGap, formatRate, type AdaptiveResult } from '@/lib/scoring/adaptive';
 import type { DiffOp, DiffResult } from '@/lib/scoring/diff';
 import type { LagAnalysis } from '@/lib/scoring/stats';
 import { KeystrokeSparkline } from './KeystrokeSparkline';
@@ -91,10 +91,13 @@ export function ResultsView({ item, result, currentToken }: ResultsViewProps) {
       <div className="text-center text-sm text-zinc-600 dark:text-zinc-400">
         {adaptation ? (
           <p>
-            gap {formatGap(adaptation.previousGapMs)} → <strong className="text-zinc-900 dark:text-zinc-100">{formatGap(adaptation.nextGapMs)}</strong>{' '}
+            {adaptation.kind === 'gap' ? 'gap' : 'rate'} {adaptation.kind === 'gap' ? formatGap(adaptation.previous) : formatRate(adaptation.previous)} →{' '}
+            <strong className="text-zinc-900 dark:text-zinc-100">
+              {adaptation.kind === 'gap' ? formatGap(adaptation.next) : formatRate(adaptation.next)}
+            </strong>{' '}
             <span className="text-zinc-500">
-              ({adaptation.deltaMs > 0 ? '+' : ''}
-              {adaptation.deltaMs} ms: {adaptation.reason}
+              ({adaptation.delta > 0 ? '+' : ''}
+              {adaptation.kind === 'gap' ? `${adaptation.delta} ms` : adaptation.delta.toFixed(2)}: {adaptation.reason}
               {adaptation.streakBonus ? ', plus a streak bonus' : ''})
             </span>
           </p>

@@ -1,12 +1,14 @@
 'use client';
 
-import type { TimingMode } from '@/types';
-import { formatGap } from '@/lib/scoring/adaptive';
+import type { DeliveryMode, TimingMode } from '@/types';
+import { formatGap, formatRate } from '@/lib/scoring/adaptive';
 import type { SessionStats } from '@/lib/scoring/stats';
 
 export interface StatsBarProps {
   stats: SessionStats;
   gapMs: number;
+  rate: number;
+  delivery: DeliveryMode;
   timingMode: TimingMode;
   onOpenSettings: () => void;
   onOpenStats: () => void;
@@ -15,8 +17,14 @@ export interface StatsBarProps {
 const keyButton =
   'rounded border border-zinc-300 px-2 py-0.5 font-mono text-xs text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800';
 
-export function StatsBar({ stats, gapMs, timingMode, onOpenSettings, onOpenStats }: StatsBarProps) {
+export function StatsBar({ stats, gapMs, rate, delivery, timingMode, onOpenSettings, onOpenStats }: StatsBarProps) {
   const acc = stats.attempted ? `${Math.round(stats.accuracy * 100)}%` : '–';
+  const speed =
+    delivery === 'continuous'
+      ? { label: 'rate', value: formatRate(rate), title: 'speech rate (continuous delivery)' }
+      : timingMode === 'cadence'
+        ? { label: 'every', value: formatGap(gapMs), title: 'interval between token starts' }
+        : { label: 'gap', value: formatGap(gapMs), title: 'silence after each token' };
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
       <div className="mx-auto flex w-full max-w-[720px] items-center justify-between gap-4 px-6 py-3">
@@ -28,10 +36,10 @@ export function StatsBar({ stats, gapMs, timingMode, onOpenSettings, onOpenStats
           <span>
             streak <strong className="text-zinc-900 dark:text-zinc-100">{stats.currentStreak}</strong>
           </span>
-          <span title={timingMode === 'cadence' ? 'interval between token starts' : 'silence after each token'}>
-            {timingMode === 'cadence' ? 'every' : 'gap'}{' '}
-            <strong key={gapMs} className="gap-pop text-zinc-900 dark:text-zinc-100">
-              {formatGap(gapMs)}
+          <span title={speed.title}>
+            {speed.label}{' '}
+            <strong key={speed.value} className="gap-pop text-zinc-900 dark:text-zinc-100">
+              {speed.value}
             </strong>
           </span>
           <button type="button" data-no-refocus onClick={onOpenStats} className={keyButton} title="Session summary (T)">
