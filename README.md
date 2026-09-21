@@ -1,36 +1,165 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IELTS Listening Spelling Trainer
 
-## Getting Started
+A browser-based dictation simulator for the one skill the IELTS Listening test keeps
+testing: hearing a surname, postcode or reference code spelled out letter by letter and
+typing it in real time without falling behind.
 
-First, run the development server:
+The machine dictates a freshly generated string using the browser's built-in speech
+synthesis, you type along, the app scores the attempt with a character-level diff and
+adapts the pause between characters to how you actually performed.
+
+- **No lists, no database.** Every surname, UK postcode, US ZIP and reference code is
+  generated on the fly from a seeded random number generator, so any item can be retried
+  exactly.
+- **Real browser voices.** British, American, Australian and other accents come from
+  whatever the browser exposes at runtime. Desktop Chrome has the widest voice set.
+- **Keyboard only.** Start a session with one key and never touch the mouse.
+- **Everything persists** in `localStorage`: settings, the adapted speed and the session
+  history.
+
+## Running
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Command             | What it does                                                    |
+| ------------------- | --------------------------------------------------------------- |
+| `npm run dev`       | Development server                                              |
+| `npm test`          | Vitest unit tests for the generators, tokeniser, diff and timing |
+| `npm run typecheck` | `tsc --noEmit`                                                  |
+| `npm run lint`      | ESLint (Next.js config, React Compiler rules)                    |
+| `npm run build`     | Production build                                                |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Pages:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` the trainer.
+- `/debug` 20 generated items per content type and preset with their spoken token lists,
+  a box to speak any string letter by letter with the current gap and voice, and the
+  built-in pronunciation map.
 
-## Learn More
+## Keys
 
-To learn more about Next.js, take a look at the following resources:
+| State     | Key                     | Action                                                     |
+| --------- | ----------------------- | ---------------------------------------------------------- |
+| any       | `[` / `]`               | Gap between characters −50 / +50 ms (takes effect from the next token) |
+| any       | `Esc`                   | Close the settings drawer or the summary; otherwise abort the item (not scored) |
+| Ready     | `Space` / `Enter`       | Start an item                                              |
+| Ready     | `S` / `T`               | Settings drawer / session summary                          |
+| Dictating | type                    | Every keystroke is recorded with its time                  |
+| Dictating | `Enter`                 | Submit early                                               |
+| Dictating | `Tab` or `Ctrl+R`       | Replay the item from the start (once, if allowed; counted in stats) |
+| Result    | `Enter` / `Space`       | Next item                                                  |
+| Result    | `Backspace`             | Retry the same item (same seed, same voice)                |
+| Result    | `R`                     | Listen to the item again (not scored)                      |
+| Result    | `S` / `T`               | Settings drawer / session summary                          |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The attempt auto-submits when the typed length reaches the target length after dictation
+has finished, or after a configurable silence (default 1.5 s) once dictation has finished.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`R` cannot be the replay key while dictating because R is a letter you may need to type,
+so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result view.
 
-## Deploy on Vercel
+## Settings (drawer, key `S`)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Group    | Control                                                  | Default   |
+| -------- | -------------------------------------------------------- | --------- |
+| Content  | Content type (surname / UK postcode / US ZIP / reference / mixed with checkboxes) | mixed |
+| Content  | Difficulty preset (easy / medium / hard)                 | medium    |
+| Content  | Surname flavour (British / American / both)              | both      |
+| Content  | Read whole word first (surnames)                         | on        |
+| Content  | Announce type ("postcode" before spelling)              | on        |
+| Speech   | Locale and voice picker, grouped by accent, with a test button | en-GB, default voice |
+| Speech   | Random accent each item                                  | off       |
+| Speech   | Speech rate 0.7–1.3                                      | 1.0       |
+| Speech   | Zero style (oh / zero / random)                          | random    |
+| Speech   | Grouping "double L" / "triple 7" (never / always / random) | random  |
+| Timing   | Gap between characters 0.2–2.0 s                         | 0.8 s     |
+| Timing   | Adaptive speed                                           | on        |
+| Timing   | Auto-submit silence 0.5–3 s                              | 1.5 s     |
+| Feedback | Live token boxes while dictating                         | off       |
+| Feedback | Allow one replay                                         | on        |
+| Feedback | Ding on correct                                          | off       |
+| Scoring  | Ignore spaces (postcode space optional)                  | on        |
+| Advanced | Pronunciation map editor (en-GB and en-US columns)       | built-in map |
+| Advanced | Reset speed · Export JSON · Clear history · Reset all settings | —    |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+While dictating, a row of boxes shows one box per spoken token with the current one
+highlighted. With *live token boxes* on, the boxes also show the spoken text and turn
+green or red as you type; with it off they stay blank, which is closer to the exam.
+
+### Adaptive timing
+
+After each attempt the gap for the next item changes:
+
+| Outcome                                                        | Change  |
+| -------------------------------------------------------------- | ------- |
+| Correct, no replay, every keystroke before the next token began | −100 ms |
+| Correct but at least one keystroke lagged behind the speaker    | hold    |
+| One character wrong or missing                                  | +50 ms  |
+| Two or more wrong, or a replay used                             | +150 ms |
+| Every third consecutive correct item                            | extra −50 ms |
+
+The gap is clamped to 0.2–2.0 s and persisted, so the next session starts where the last
+one ended.
+
+## Project structure
+
+```
+app/
+  layout.tsx            root layout, wraps the app in SettingsProvider
+  page.tsx              the trainer (Ready -> Dictating -> Result on one screen)
+  debug/page.tsx        generator / token / speech debug page
+components/
+  Trainer.tsx           state machine, keyboard flow, timing capture
+  TrainerInput.tsx      the large monospace input (memoised)
+  TokenRow.tsx          one box per spoken token, live feedback colouring
+  GapTimerBar.tsx       fills over each pause between tokens
+  ResultsView.tsx       verdict, aligned diff, spoken form, adaptation message
+  KeystrokeSparkline.tsx keystroke dots on a timeline with token-start lines
+  StatsBar.tsx          accuracy, streak, current gap
+  SessionSummary.tsx    stats, gap trajectory, error heat-map, per-type accuracy, export
+  SettingsPanel.tsx     the side drawer
+  VoicePicker.tsx       runtime voice enumeration grouped by accent
+  PronunciationEditor.tsx editable spoken-form table
+  SettingsProvider.tsx  context over the persisted settings and session stores
+lib/
+  generators/           surname, ukPostcode, usZip, alnum, index (createItem)
+  speech/               pronounce (spoken forms), tokenizer (double/triple), speaker
+                        (timed utterance queue), voices (enumeration and fallback)
+  scoring/              diff (Levenshtein alignment), adaptive (gap rules),
+                        stats (lag analysis, session statistics)
+  rng.ts                mulberry32 seeded PRNG
+  storage.ts            localStorage wrapper with in-memory fallback
+  store.ts              persistent stores read through useSyncExternalStore
+  settings.ts           defaults and validation
+  session.ts            session shape, validation, export
+types.ts                shared types
+```
+
+## How the content is generated
+
+- **Surnames** are assembled from onset / nucleus / coda fragments in two flavours
+  (Anglo and immigrant). Post-filters reject four identical consecutive letters and
+  consonant runs of four or more that are not themselves a table fragment. Hard items may
+  carry a hyphen or apostrophe (`O'Kearney-Szewicz`).
+- **UK postcodes** follow the six official patterns with the letters that never appear
+  in a position excluded (no Q, V, X first; no C, I, K, M, O, V inward).
+- **US ZIP codes** are five digits, five digits with a forced repeat (to trigger
+  "double"), or ZIP+4.
+- **Reference codes** come from per-preset templates (`LLDD`, `DDD/LLL-DD`, …); easy
+  avoids confusable letters, hard favours them and forces repeated runs.
+
+Every generated string is turned into speech tokens: runs of identical characters become
+"double X" / "triple X" according to the grouping mode, spaces become a 1.5× pause,
+hyphens are "dash" or "hyphen", and every letter is mapped to a spelled-out form
+("ay", "double you", "zed"/"zee") so the synthesiser never sees a bare letter.
+
+## Notes for this prototype
+
+- Desktop Chrome is the target. Firefox and Safari work but their voices differ.
+- Chrome needs a user gesture before the first utterance; pressing Space to start counts.
+- If Chrome stops firing `onend` for an utterance, a fallback timeout keeps the queue
+  moving.
+- Keystroke times are kept in refs, not state, so typing never waits on a render.
