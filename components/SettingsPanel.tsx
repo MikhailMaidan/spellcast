@@ -10,6 +10,7 @@ import {
   type ContinuousPause,
   type DeliveryMode,
   type GroupingMode,
+  type LetterStyle,
   type Preset,
   type SurnameFlavour,
   type TimingMode,
@@ -272,21 +273,21 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
             label="Delivery"
             hint={
               settings.delivery === 'continuous'
-                ? 'the whole spelling is one utterance at the voice’s natural pace; no per-letter start-up delay'
-                : 'one utterance per token with an exact gap; every token pays the voice’s start-up delay'
+                ? 'the spelling is one utterance at the voice’s own pace; the gap only applies around the intro and between postcode halves'
+                : 'each token is its own utterance, so the gap slider sets the pause between letters exactly'
             }
           >
             <Select<DeliveryMode>
               value={settings.delivery}
               options={[
-                { value: 'continuous', label: 'continuous (fast, natural)' },
-                { value: 'token', label: 'token by token (timed gaps)' },
+                { value: 'token', label: 'precise: token by token' },
+                { value: 'continuous', label: 'natural flow: one utterance' },
               ]}
               onChange={(delivery) => updateSettings({ delivery })}
             />
           </Row>
           {settings.delivery === 'continuous' ? (
-            <Row label="Pause between letters" hint="the voice decides the exact length; use speech rate for fine control">
+            <Row label="Pause between letters" hint="the voice decides the exact length; speech rate is the fine control">
               <Select<ContinuousPause>
                 value={settings.continuousPause}
                 options={[
@@ -298,32 +299,40 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
               />
             </Row>
           ) : (
-            <>
-              <Row
-                label="Timing mode"
-                hint={
-                  settings.timingMode === 'cadence'
-                    ? 'each token starts a fixed interval after the previous one started'
-                    : 'silence after each token has finished speaking'
-                }
-              >
-                <Select<TimingMode>
-                  value={settings.timingMode}
-                  options={[
-                    { value: 'pause', label: 'pause after token' },
-                    { value: 'cadence', label: 'fixed cadence' },
-                  ]}
-                  onChange={(timingMode) => updateSettings({ timingMode })}
-                />
-              </Row>
-              <Row
-                label={settings.timingMode === 'cadence' ? 'Interval between tokens' : 'Gap between tokens'}
-                hint={`[ ] ±${GAP_KEY_STEP} ms · { } ±${GAP_KEY_FINE_STEP} ms · 0 = as fast as the voice allows`}
-              >
-                <Range value={settings.gapMs} min={GAP_MIN} max={GAP_MAX} step={GAP_STEP} unit="ms" onChange={(gapMs) => updateSettings({ gapMs })} />
-              </Row>
-            </>
+            <Row
+              label="Timing mode"
+              hint={
+                settings.timingMode === 'cadence'
+                  ? 'each token starts a fixed interval after the previous one started'
+                  : 'silence after each token has finished speaking'
+              }
+            >
+              <Select<TimingMode>
+                value={settings.timingMode}
+                options={[
+                  { value: 'pause', label: 'pause after token' },
+                  { value: 'cadence', label: 'fixed cadence' },
+                ]}
+                onChange={(timingMode) => updateSettings({ timingMode })}
+              />
+            </Row>
           )}
+          <Row
+            label={
+              settings.delivery === 'continuous'
+                ? 'Gap between utterances'
+                : settings.timingMode === 'cadence'
+                  ? 'Interval between tokens'
+                  : 'Gap between tokens'
+            }
+            hint={
+              settings.delivery === 'continuous'
+                ? 'after the intro and between postcode halves'
+                : `[ ] ±${GAP_KEY_STEP} ms · { } ±${GAP_KEY_FINE_STEP} ms · 0 = as fast as the voice allows`
+            }
+          >
+            <Range value={settings.gapMs} min={GAP_MIN} max={GAP_MAX} step={GAP_STEP} unit="ms" onChange={(gapMs) => updateSettings({ gapMs })} />
+          </Row>
           <Row label="Adaptive speed" hint={settings.delivery === 'continuous' ? 'adjusts the speech rate after each item' : 'adjusts the gap after each item'}>
             <Toggle checked={settings.adaptive} onChange={(adaptive) => updateSettings({ adaptive })} />
           </Row>
@@ -353,9 +362,26 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
         <details className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
           <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-zinc-500">Advanced</summary>
           <div className="mt-3 flex flex-col gap-4">
+            <Row
+              label="Letter pronunciation"
+              hint={settings.letterStyle === 'plain' ? 'the voice reads the letter itself (A, B, W)' : 'spelled-out forms from the map (ay, bee, double you)'}
+            >
+              <Select<LetterStyle>
+                value={settings.letterStyle}
+                options={[
+                  { value: 'plain', label: 'plain letters' },
+                  { value: 'spelled', label: 'spelled out' },
+                ]}
+                onChange={(letterStyle) => updateSettings({ letterStyle })}
+              />
+            </Row>
             <div>
               <h4 className="mb-2 text-sm">Pronunciation map</h4>
-              <PronunciationEditor overrides={settings.pronunciationOverrides} onChange={(pronunciationOverrides) => updateSettings({ pronunciationOverrides })} />
+              <PronunciationEditor
+                overrides={settings.pronunciationOverrides}
+                letterStyle={settings.letterStyle}
+                onChange={(pronunciationOverrides) => updateSettings({ pronunciationOverrides })}
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={button} onClick={() => updateSettings({ gapMs: GAP_DEFAULT, rate: RATE_DEFAULT })}>

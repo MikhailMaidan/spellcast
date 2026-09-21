@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../rng';
-import { spokenSummary, tokenize } from './tokenizer';
+import { introText, spokenSummary, tokenize } from './tokenizer';
 
 const plain = (tokens: { text: string; chars: string }[]) => tokens.map(({ text, chars }) => ({ text, chars }));
 
@@ -79,16 +79,25 @@ describe('tokenize', () => {
     expect(single[0].text).toBe('el');
   });
 
-  it('prefixes announcement and whole-word tokens', () => {
-    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'surname', readWholeFirst: true });
-    expect(tokens[0]).toEqual({ text: 'surname', chars: '' });
-    expect(tokens[1]).toEqual({ text: 'Bell', chars: '', pauseAfter: 2 });
-    expect(tokens[2]).toEqual({ text: "that's", chars: '' });
-    expect(tokens[3].text).toBe('bee');
+  it('prefixes a single introductory phrase', () => {
+    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The surname is', readWholeFirst: true });
+    expect(tokens[0]).toEqual({ text: "The surname is Bell, that's", chars: '' });
+    expect(tokens[1].text).toBe('bee');
+    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The surname is' })[0]).toEqual({ text: 'The surname is', chars: '' });
+    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', readWholeFirst: true })[0]).toEqual({ text: "Bell, that's", chars: '' });
+    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh' })[0].chars).toBe('B');
+    expect(introText('Bell')).toBeNull();
+  });
+
+  it('sends plain letters when asked, keeping digits, symbols and overrides', () => {
+    const tokens = tokenize("Bell-7", { grouping: 'always', zeroStyle: 'oh', letterStyle: 'plain', rng: mulberry32(1) });
+    expect(tokens.map((t) => t.text)).toEqual(['B', 'E', 'double L', expect.stringMatching(/^(dash|hyphen)$/), 'seven']);
+    const overridden = tokenize('A', { grouping: 'never', zeroStyle: 'oh', letterStyle: 'plain', overrides: { 'gb:A': 'ay' } });
+    expect(overridden[0].text).toBe('ay');
   });
 
   it('summarises the spelling tokens only', () => {
-    const tokens = tokenize('SW1A 0AA', { grouping: 'always', zeroStyle: 'oh', announce: 'postcode' });
+    const tokens = tokenize('SW1A 0AA', { grouping: 'always', zeroStyle: 'oh', announce: 'The postcode is' });
     expect(spokenSummary(tokens)).toBe('ess · double you · one · ay · oh · double ay');
   });
 

@@ -1,10 +1,11 @@
 'use client';
 
 import { defaultSpokenForm, overrideKey, PRONOUNCEABLE_CHARS } from '@/lib/speech/pronounce';
-import type { PronunciationColumn } from '@/types';
+import type { LetterStyle, PronunciationColumn } from '@/types';
 
 export interface PronunciationEditorProps {
   overrides: Record<string, string>;
+  letterStyle: LetterStyle;
   onChange: (next: Record<string, string>) => void;
 }
 
@@ -14,7 +15,7 @@ const COLUMNS: { key: PronunciationColumn; label: string }[] = [
 ];
 
 /** Editable spoken-form table (§6.2). Empty cells fall back to the built-in map. */
-export function PronunciationEditor({ overrides, onChange }: PronunciationEditorProps) {
+export function PronunciationEditor({ overrides, letterStyle, onChange }: PronunciationEditorProps) {
   const setCell = (column: PronunciationColumn, ch: string, value: string) => {
     const key = overrideKey(column, ch);
     const next = { ...overrides };
@@ -54,7 +55,7 @@ export function PronunciationEditor({ overrides, onChange }: PronunciationEditor
                   <input
                     type="text"
                     value={overrides[overrideKey(c.key, ch)] ?? ''}
-                    placeholder={defaultSpokenForm(ch, c.key)}
+                    placeholder={defaultSpokenForm(ch, c.key, letterStyle)}
                     onChange={(e) => setCell(c.key, ch, e.target.value)}
                     className="w-full rounded border border-zinc-300 bg-white px-1.5 py-0.5 font-mono text-xs placeholder:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800"
                     autoComplete="off"
@@ -66,7 +67,10 @@ export function PronunciationEditor({ overrides, onChange }: PronunciationEditor
           ))}
         </tbody>
       </table>
-      <p className="text-xs text-zinc-500">An override for 0 replaces both “oh” and “zero”; leave it empty to keep the zero-style setting.</p>
+      <p className="text-xs text-zinc-500">
+        Empty cells use the built-in form shown in grey. Fill a cell to fix a letter a voice misreads (e.g. A → “ay”). An override for 0 replaces both
+        “oh” and “zero”.
+      </p>
     </div>
   );
 }

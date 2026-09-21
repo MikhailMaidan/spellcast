@@ -26,6 +26,12 @@ export type TimingMode = 'pause' | 'cadence';
 export type DeliveryMode = 'token' | 'continuous';
 /** Separator between letters in continuous delivery: nothing, a comma, or a full stop. */
 export type ContinuousPause = 'none' | 'short' | 'long';
+/**
+ * How letters are handed to the synthesiser: 'plain' sends the letter itself ("A", "B"),
+ * which most voices read naturally; 'spelled' uses the spelled-out map ("ay", "bee") for
+ * voices that misread bare letters.
+ */
+export type LetterStyle = 'plain' | 'spelled';
 
 export const CONCRETE_CONTENT_TYPES: readonly ConcreteContentType[] = ['surname', 'ukPostcode', 'usZip', 'alnum'];
 export const CONTENT_TYPES: readonly ContentType[] = [...CONCRETE_CONTENT_TYPES, 'mixed'];
@@ -71,6 +77,7 @@ export interface Settings {
   ignoreSpaces: boolean;
   /** Short "ding" on a correct item. */
   ding: boolean;
+  letterStyle: LetterStyle;
   /** Pronunciation overrides keyed `${column}:${CHAR}`, e.g. "gb:L" -> "ell". */
   pronunciationOverrides: Record<string, string>;
 }

@@ -7,7 +7,7 @@ import { useSyncExternalStore } from 'react';
 import type { Session, Settings } from '@/types';
 import { sanitiseSession } from './session';
 import { DEFAULT_SETTINGS, sanitiseSettings } from './settings';
-import { loadJSON, saveJSON, STORAGE_KEYS } from './storage';
+import { LEGACY_SETTINGS_KEYS, loadJSON, saveJSON, STORAGE_KEYS } from './storage';
 
 export interface PersistentStore<T> {
   get(): T;
@@ -16,11 +16,16 @@ export interface PersistentStore<T> {
   subscribe(listener: () => void): () => void;
 }
 
-export function createPersistentStore<T>(key: string, serverValue: T, sanitise: (raw: unknown) => T): PersistentStore<T> {
+export function createPersistentStore<T>(
+  key: string,
+  serverValue: T,
+  sanitise: (raw: unknown) => T,
+  load: () => unknown = () => loadJSON<unknown>(key, undefined),
+): PersistentStore<T> {
   let value: T | undefined;
   const listeners = new Set<() => void>();
   const ensure = (): T => {
-    if (value === undefined) value = sanitise(loadJSON<unknown>(key, undefined));
+    if (value === undefined) value = sanitise(load());
     return value;
   };
   return {
@@ -59,7 +64,23 @@ export function useHydrated(): boolean {
 
 const SERVER_SESSION: Session = { id: 'pending', startedAt: 0, attempts: [], settingsSnapshot: DEFAULT_SETTINGS };
 
-export const settingsStore = createPersistentStore<Settings>(STORAGE_KEYS.settings, DEFAULT_SETTINGS, sanitiseSettings);
+/** Current settings, or the previous version's settings minus the fields whose defaults changed. */
+function loadSettingsRaw(): unknown {
+  const current = loadJSON<unknown>(STORAGE_KEYS.settings, undefined);
+  if (current !== undefined) return current;
+  for (const key of LEGACY_SETTINGS_KEYS) {
+    const legacy = loadJSON<Record<string, unknown> | undefined>(key, undefined);
+    if (legacy && typeof legacy === 'object') {
+      const migrated = { ...legacy };
+      delete migrated.delivery;
+      delete migrated.continuousPause;
+      return migrated;
+    }
+  }
+  return undefined;
+}
+
+export const settingsStore = createPersistentStore<Settings>(STORAGE_KEYS.settings, DEFAULT_SETTINGS, sanitiseSettings, loadSettingsRaw);
 export const sessionStore = createPersistentStore<Session>(STORAGE_KEYS.session, SERVER_SESSION, (raw) =>
   sanitiseSession(raw, settingsStore.get()),
 );

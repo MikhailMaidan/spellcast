@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   surnameFlavour: 'both',
   gapMs: GAP_DEFAULT,
   timingMode: 'pause',
-  delivery: 'continuous',
+  delivery: 'token',
   continuousPause: 'short',
   adaptive: true,
   autoSubmitSilenceMs: 1500,
@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   caseSensitive: false,
   ignoreSpaces: true,
   ding: false,
+  letterStyle: 'plain',
   pronunciationOverrides: {},
 };
 
@@ -87,6 +88,7 @@ export function sanitiseSettings(raw: unknown): Settings {
     caseSensitive: false,
     ignoreSpaces: bool(r.ignoreSpaces, d.ignoreSpaces),
     ding: bool(r.ding, d.ding),
+    letterStyle: oneOf(r.letterStyle, ['plain', 'spelled'] as const, d.letterStyle),
     pronunciationOverrides: overrides,
   };
 }

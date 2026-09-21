@@ -2,7 +2,7 @@
  * string -> SpeechToken[] (§6.1). Scans the target for runs of identical characters and
  * turns them into "double X" / "triple X" tokens according to the grouping mode.
  */
-import type { GroupingMode, PronunciationColumn, SpeechToken, ZeroStyle } from '@/types';
+import type { GroupingMode, LetterStyle, PronunciationColumn, SpeechToken, ZeroStyle } from '@/types';
 import type { Rng } from '../rng';
 import { spokenForm } from './pronounce';
 
@@ -13,32 +13,43 @@ export interface TokenizeOptions {
   /** Drives every random decision (grouping coin flips, oh/zero, dash/hyphen). */
   rng?: Rng;
   overrides?: Record<string, string>;
-  /** Spoken before the spelling, e.g. "postcode". */
+  /** 'plain' sends letters as themselves; 'spelled' (default) uses the map. */
+  letterStyle?: LetterStyle;
+  /** Spoken before the spelling, e.g. "The postcode is". */
   announce?: string;
-  /** Say the whole target as a word first (surnames). */
+  /** Say the whole target as a word first (surnames): "Bell, that's". */
   readWholeFirst?: boolean;
-  /** Say "that's" between the whole word and the spelling (default true). */
-  sayThats?: boolean;
 }
 
 /** Pause multiplier for a space between halves of a postcode. */
 export const SPACE_PAUSE = 1.5;
-/** Pause multiplier after the whole word has been read. */
-export const WHOLE_WORD_PAUSE = 2;
 
 const ALNUM = /[A-Za-z0-9]/;
+
+/**
+ * The single introductory phrase, e.g. "The surname is Bell, that's" / "The postcode is" /
+ * "Bell, that's", or null when neither option is on. One phrase, one utterance, one pause.
+ */
+export function introText(target: string, announce?: string, readWholeFirst?: boolean): string | null {
+  const whole = readWholeFirst ? `${target}, that's` : null;
+  if (announce && whole) return `${announce} ${whole}`;
+  return announce ?? whole;
+}
 
 export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
   const rng = opts.rng ?? Math.random;
   const pronounce = (ch: string) =>
-    spokenForm(ch, { column: opts.column ?? 'gb', zeroStyle: opts.zeroStyle, rng, overrides: opts.overrides });
+    spokenForm(ch, {
+      column: opts.column ?? 'gb',
+      zeroStyle: opts.zeroStyle,
+      rng,
+      overrides: opts.overrides,
+      letterStyle: opts.letterStyle ?? 'spelled',
+    });
 
   const tokens: SpeechToken[] = [];
-  if (opts.announce) tokens.push({ text: opts.announce, chars: '' });
-  if (opts.readWholeFirst) {
-    tokens.push({ text: target, chars: '', pauseAfter: WHOLE_WORD_PAUSE });
-    if (opts.sayThats !== false) tokens.push({ text: "that's", chars: '' });
-  }
+  const intro = introText(target, opts.announce, opts.readWholeFirst);
+  if (intro) tokens.push({ text: intro, chars: '' });
 
   let i = 0;
   while (i < target.length) {

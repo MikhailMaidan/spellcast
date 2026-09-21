@@ -58,7 +58,7 @@ describe('clamp and format helpers', () => {
     expect(clampGap(50)).toBe(50);
     expect(clampGap(-20)).toBe(0);
     expect(clampGap(5000)).toBe(2000);
-    expect(clampGap(Number.NaN)).toBe(800);
+    expect(clampGap(Number.NaN)).toBe(500);
   });
 
   it('snaps the rate to two decimals and clamps', () => {

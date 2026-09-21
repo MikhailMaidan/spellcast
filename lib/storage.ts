@@ -6,9 +6,12 @@
 const memory = new Map<string, string>();
 
 export const STORAGE_KEYS = {
-  settings: 'spellcast.settings.v1',
+  settings: 'spellcast.settings.v2',
   session: 'spellcast.session.v1',
 } as const;
+
+/** Older settings keys, read once when the current key is empty. */
+export const LEGACY_SETTINGS_KEYS = ['spellcast.settings.v1'] as const;
 
 function readRaw(key: string): string | null {
   try {

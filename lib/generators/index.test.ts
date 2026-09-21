@@ -28,16 +28,15 @@ describe('createItem', () => {
     expect(resolveContentType({ contentType: 'surname', mixedTypes: [] }, rng)).toBe('surname');
   });
 
-  it('adds announcement and whole-word tokens per settings', () => {
+  it('adds one introductory phrase per settings', () => {
     const surname = { ...settings, contentType: 'surname' as const, announceType: true, readWholeFirst: true };
     const item = createItem({ seed: 7, settings: surname, now: 1 });
-    expect(item.tokens[0]).toEqual({ text: 'surname', chars: '' });
-    expect(item.tokens[1].text).toBe(item.target);
-    expect(item.tokens[2].text).toBe("that's");
+    expect(item.tokens[0]).toEqual({ text: `The surname is ${item.target}, that's`, chars: '' });
+    expect(item.tokens[1].chars).not.toBe('');
 
     const postcode = { ...settings, contentType: 'ukPostcode' as const, announceType: true, readWholeFirst: true };
     const pc = createItem({ seed: 7, settings: postcode, now: 1 });
-    expect(pc.tokens[0]).toEqual({ text: 'postcode', chars: '' });
+    expect(pc.tokens[0]).toEqual({ text: 'The postcode is', chars: '' });
     expect(pc.tokens[1].chars).not.toBe('');
 
     const quiet = { ...settings, contentType: 'alnum' as const, announceType: false, readWholeFirst: false };
@@ -51,8 +50,14 @@ describe('createItem', () => {
     }
   });
 
-  it('uses the pronunciation column for Z', () => {
-    const z = { ...settings, contentType: 'alnum' as const, announceType: false, pronunciationOverrides: {} };
+  it('sends plain upper-case letters by default', () => {
+    const plain = { ...settings, contentType: 'surname' as const, announceType: false, readWholeFirst: false, grouping: 'never' as const };
+    const item = createItem({ seed: 3, settings: plain, now: 1 });
+    expect(item.tokens.map((t) => t.text).join('')).toBe(item.target.toUpperCase().replace(/[^A-Z]/g, (c) => (c === '-' ? '' : c)).replace(/'/g, ''));
+  });
+
+  it('uses the pronunciation column for Z in the spelled style', () => {
+    const z = { ...settings, contentType: 'alnum' as const, announceType: false, letterStyle: 'spelled' as const, pronunciationOverrides: {} };
     let seed = 1;
     let item = createItem({ seed, settings: z, column: 'gb', now: 1 });
     while (!item.target.includes('Z') && seed < 500) item = createItem({ seed: ++seed, settings: z, column: 'gb', now: 1 });

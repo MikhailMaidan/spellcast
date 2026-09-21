@@ -52,8 +52,15 @@ export default function DebugPage() {
   }, [settings, column, batch]);
 
   const previewTokens = useMemo(
-    () => tokenize(text, { grouping: settings.grouping, zeroStyle: settings.zeroStyle, column, overrides: settings.pronunciationOverrides }),
-    [text, settings.grouping, settings.zeroStyle, settings.pronunciationOverrides, column],
+    () =>
+      tokenize(text, {
+        grouping: settings.grouping,
+        zeroStyle: settings.zeroStyle,
+        column,
+        overrides: settings.pronunciationOverrides,
+        letterStyle: settings.letterStyle,
+      }),
+    [text, settings.grouping, settings.zeroStyle, settings.pronunciationOverrides, settings.letterStyle, column],
   );
 
   const speak = () => {
@@ -81,7 +88,13 @@ export default function DebugPage() {
     const chosen = v ?? resolveVoice(voices, { voiceURI: null, locale: settings.locale }).voice;
     const l = chosen?.lang || langForLocale(settings.locale);
     getSpeaker().speak({
-      tokens: tokenize('JZ0 7LL', { grouping: 'always', zeroStyle: 'oh', column: columnForLang(l), overrides: settings.pronunciationOverrides }),
+      tokens: tokenize('JZ0 7LL', {
+        grouping: 'always',
+        zeroStyle: 'oh',
+        column: columnForLang(l),
+        overrides: settings.pronunciationOverrides,
+        letterStyle: settings.letterStyle,
+      }),
       voice: chosen,
       lang: l,
       rate: settings.rate,
@@ -121,7 +134,8 @@ export default function DebugPage() {
               ■ Stop
             </button>
             <span className="text-xs text-zinc-500">
-              delivery {settings.delivery} · {settings.timingMode === 'cadence' ? 'cadence' : 'gap'} {settings.gapMs} ms · rate {settings.rate.toFixed(2)} · grouping {settings.grouping} · zero {settings.zeroStyle} · column {column}
+              delivery {settings.delivery} · letters {settings.letterStyle} · {settings.timingMode === 'cadence' ? 'cadence' : 'gap'} {settings.gapMs} ms · rate{' '}
+              {settings.rate.toFixed(2)} · grouping {settings.grouping} · zero {settings.zeroStyle} · column {column}
             </span>
           </div>
           <p className="flex flex-wrap gap-1 font-mono text-sm">
@@ -183,7 +197,7 @@ export default function DebugPage() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium">Pronunciation map (built-in)</h2>
+        <h2 className="text-sm font-medium">Spelled-out map (used when letter pronunciation is “spelled out”)</h2>
         <p className="flex flex-wrap gap-1 font-mono text-xs">
           {PRONOUNCEABLE_CHARS.map((ch) => (
             <span key={ch} className="rounded border border-zinc-200 px-1.5 py-0.5 dark:border-zinc-800">

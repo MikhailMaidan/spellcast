@@ -2,7 +2,7 @@
  * Character -> spoken form mapping (§6.2). Never pass a bare letter to the synthesiser:
  * "A" tends to come out as the article "uh" and short letters get clipped.
  */
-import type { PronunciationColumn, ZeroStyle } from '@/types';
+import type { LetterStyle, PronunciationColumn, ZeroStyle } from '@/types';
 import type { Rng } from '../rng';
 
 export const LETTERS_GB: Record<string, string> = {
@@ -41,9 +41,9 @@ export function columnForLang(lang: string | null | undefined): PronunciationCol
 }
 
 /** Default spoken form for the editor table (0 shows both styles). */
-export function defaultSpokenForm(ch: string, column: PronunciationColumn): string {
+export function defaultSpokenForm(ch: string, column: PronunciationColumn, letterStyle: LetterStyle = 'spelled'): string {
   const upper = ch.toUpperCase();
-  if (/^[A-Z]$/.test(upper)) return (column === 'us' ? LETTERS_US : LETTERS_GB)[upper];
+  if (/^[A-Z]$/.test(upper)) return letterStyle === 'plain' ? upper : (column === 'us' ? LETTERS_US : LETTERS_GB)[upper];
   if (upper === '0') return column === 'us' ? 'zero / oh' : 'oh / zero';
   if (DIGITS[upper]) return DIGITS[upper];
   if (upper === '-') return 'dash / hyphen';
@@ -56,6 +56,8 @@ export interface PronounceOptions {
   /** Used for the "random" choices (zero style, dash/hyphen). Defaults to Math.random. */
   rng?: Rng;
   overrides?: Record<string, string>;
+  /** 'plain' hands the letter itself to the voice; 'spelled' (default) uses the map. */
+  letterStyle?: LetterStyle;
 }
 
 /** The spoken form of a single character. */
@@ -68,7 +70,10 @@ export function spokenForm(ch: string, opts: PronounceOptions = {}): string {
   const override = opts.overrides?.[overrideKey(column, upper)];
   if (override && override.trim()) return override.trim();
 
-  if (/^[A-Z]$/.test(upper)) return (column === 'us' ? LETTERS_US : LETTERS_GB)[upper];
+  if (/^[A-Z]$/.test(upper)) {
+    if (opts.letterStyle === 'plain') return upper;
+    return (column === 'us' ? LETTERS_US : LETTERS_GB)[upper];
+  }
   if (upper === '0') {
     const style = zeroStyle === 'random' ? (rng() < 0.5 ? 'oh' : 'zero') : zeroStyle;
     return ZERO_FORMS[style];

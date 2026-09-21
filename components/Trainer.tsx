@@ -347,7 +347,14 @@ export default function Trainer() {
       const s = latest.current.settings;
       const chosen = v ?? resolveVoice(latest.current.voices, { voiceURI: null, locale: s.locale }).voice;
       const lang = chosen?.lang || langForLocale(s.locale);
-      const tokens = tokenize('JZ0 7LL', { grouping: 'always', zeroStyle: 'oh', column: columnForLang(lang), overrides: s.pronunciationOverrides });
+      const tokens = tokenize('JZ0 7LL', {
+        grouping: 'always',
+        zeroStyle: 'oh',
+        column: columnForLang(lang),
+        overrides: s.pronunciationOverrides,
+        letterStyle: s.letterStyle,
+        announce: 'The reference is',
+      });
       getSpeaker().speak({ tokens, voice: chosen, lang, rate: s.rate, delivery: s.delivery, continuousPause: s.continuousPause, getTiming });
     },
     [getSpeaker, getTiming],

@@ -11,7 +11,7 @@ export const GAP_STEP = 10;
 /** Keyboard steps: [ and ] are coarse, { and } are fine. */
 export const GAP_KEY_STEP = 50;
 export const GAP_KEY_FINE_STEP = 10;
-export const GAP_DEFAULT = 800;
+export const GAP_DEFAULT = 500;
 
 /** SpeechSynthesisUtterance.rate range exposed in settings. */
 export const RATE_MIN = 0.5;

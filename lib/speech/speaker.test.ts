@@ -23,12 +23,14 @@ describe('buildSegments', () => {
     expect(buildSegments(postcode, 'continuous', 'long')[0].text).toBe('ess. double you. one. ay. oh. double ay');
   });
 
-  it('keeps announcement and whole-word tokens as their own utterances', () => {
-    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'surname', readWholeFirst: true });
+  it('keeps the introductory phrase as its own utterance', () => {
+    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The surname is', readWholeFirst: true });
     const segs = buildSegments(tokens, 'continuous', 'short');
-    expect(segs.map((s) => s.text)).toEqual(['surname', 'Bell', "that's", 'bee, ee, double el']);
-    expect(segs[1].pauseAfter).toBe(2);
-    expect(segs[3].parts.map((p) => p.token)).toEqual([3, 4, 5]);
+    expect(segs.map((s) => s.text)).toEqual(["The surname is Bell, that's", 'bee, ee, double el']);
+    expect(segs[0].pauseAfter).toBe(1);
+    expect(segs[1].parts.map((p) => p.token)).toEqual([1, 2, 3]);
+    const plain = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', letterStyle: 'plain' });
+    expect(buildSegments(plain, 'continuous', 'short')[0].text).toBe('B, E, double L');
   });
 
   it('starts with a silent segment when a pause token comes first', () => {
