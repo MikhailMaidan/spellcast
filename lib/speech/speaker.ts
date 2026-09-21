@@ -1,9 +1,21 @@
 /**
  * Timed utterance queue (§6.3). One SpeechSynthesisUtterance per token, driven token by
  * token with setTimeout so the gap is exact and cancelling is instant.
+ *
+ * Two timing modes:
+ * - 'pause'   : wait gapMs of silence after a token has finished speaking.
+ * - 'cadence' : start the next token gapMs after the previous token *started*, so the
+ *               engine's start-up latency and the token's own audio are absorbed by the
+ *               gap instead of being added on top of it. If the audio is longer than the
+ *               gap the next token follows immediately.
  */
-import type { SpeechToken } from '@/types';
+import type { SpeechToken, TimingMode } from '@/types';
 import { speechAvailable } from './support';
+
+export interface Timing {
+  gapMs: number;
+  mode: TimingMode;
+}
 
 export interface SpeakRequest {
   tokens: SpeechToken[];
@@ -11,19 +23,30 @@ export interface SpeakRequest {
   /** Used when no voice object is available. */
   lang: string;
   rate: number;
-  /** Read for every gap so [ ] adjustments apply from the next token. */
-  getGapMs: () => number;
+  /** Read before every gap so [ ] adjustments apply from the next token. */
+  getTiming: () => Timing;
   /** A token started speaking (or a pause token began). `atMs` is relative to dictation start. */
   onTokenStart?: (index: number, atMs: number) => void;
   onTokenEnd?: (index: number, atMs: number) => void;
-  /** A timed gap of `waitMs` began after token `index`. */
+  /** A timed wait of `waitMs` began after token `index`. */
   onGap?: (index: number, waitMs: number) => void;
   onDone?: (atMs: number) => void;
 }
 
-/** Chrome sometimes never fires `onend`; this bounds how long we wait for an utterance. */
-export function fallbackTimeoutMs(text: string): number {
-  return Math.max(1500, 400 * text.length);
+/**
+ * Chrome sometimes never fires `onend`; this bounds how long we wait for an utterance.
+ * Roughly the expected spoken length plus a margin, so a stuck event does not stall the
+ * dictation at more than about a second per token.
+ */
+export function fallbackTimeoutMs(text: string, rate = 1): number {
+  return Math.max(1000, Math.round((300 + 150 * text.length) / Math.max(0.5, rate)));
+}
+
+/** How long to wait before the next token, given when the previous one started and ended. */
+export function gapWaitMs(timing: Timing, multiplier: number, startedAtMs: number, endedAtMs: number): number {
+  const gap = multiplier * timing.gapMs;
+  if (timing.mode === 'cadence') return Math.max(0, startedAtMs + gap - endedAtMs);
+  return gap;
 }
 
 export class Speaker {
@@ -52,9 +75,28 @@ export class Speaker {
     const { tokens } = req;
     const alive = () => gen === this.generation;
     const later = (fn: () => void, ms: number) => {
-      this.timer = setTimeout(() => {
-        if (alive()) fn();
-      }, ms);
+      this.timer = setTimeout(
+        () => {
+          if (alive()) fn();
+        },
+        Math.max(0, ms),
+      );
+    };
+
+    /** Schedule the token after `index`, letting a following pause token replace the ordinary gap. */
+    const scheduleNext = (index: number, startedAtMs: number, endedAtMs: number) => {
+      const tok = tokens[index];
+      const next = tokens[index + 1];
+      let multiplier = tok.pauseAfter ?? 1;
+      let nextIndex = index + 1;
+      if (next?.silent) {
+        req.onTokenStart?.(index + 1, this.now());
+        multiplier = next.pauseAfter ?? 1;
+        nextIndex = index + 2;
+      }
+      const wait = gapWaitMs(req.getTiming(), multiplier, startedAtMs, endedAtMs);
+      req.onGap?.(index, wait);
+      later(() => step(nextIndex), wait);
     };
 
     const step = (i: number): void => {
@@ -67,8 +109,9 @@ export class Speaker {
       const tok = tokens[i];
 
       if (tok.silent) {
+        // Only reached when a pause token comes first; otherwise scheduleNext absorbs it.
         req.onTokenStart?.(i, this.now());
-        const wait = (tok.pauseAfter ?? 1) * req.getGapMs();
+        const wait = (tok.pauseAfter ?? 1) * req.getTiming().gapMs;
         req.onGap?.(i, wait);
         later(() => step(i + 1), wait);
         return;
@@ -80,12 +123,12 @@ export class Speaker {
       u.rate = req.rate;
       u.pitch = 1;
 
-      let started = false;
+      let startedAtMs = -1;
       let ended = false;
       const markStart = () => {
-        if (started || !alive()) return;
-        started = true;
-        req.onTokenStart?.(i, this.now());
+        if (startedAtMs >= 0 || !alive()) return;
+        startedAtMs = this.now();
+        req.onTokenStart?.(i, startedAtMs);
       };
       const finish = () => {
         if (ended || !alive()) return;
@@ -93,16 +136,9 @@ export class Speaker {
         markStart();
         clearTimeout(startFallback);
         clearTimeout(endFallback);
-        req.onTokenEnd?.(i, this.now());
-        const next = tokens[i + 1];
-        if (next?.silent) {
-          // The pause token supplies its own (longer) gap.
-          step(i + 1);
-          return;
-        }
-        const wait = (tok.pauseAfter ?? 1) * req.getGapMs();
-        req.onGap?.(i, wait);
-        later(() => step(i + 1), wait);
+        const endedAtMs = this.now();
+        req.onTokenEnd?.(i, endedAtMs);
+        scheduleNext(i, startedAtMs, endedAtMs);
       };
       u.onstart = markStart;
       u.onend = finish;
@@ -111,7 +147,7 @@ export class Speaker {
         finish();
       };
       const startFallback = setTimeout(markStart, 400);
-      const endFallback = setTimeout(finish, fallbackTimeoutMs(tok.text));
+      const endFallback = setTimeout(finish, fallbackTimeoutMs(tok.text, req.rate));
       this.current = u;
       window.speechSynthesis.speak(u);
     };

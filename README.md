@@ -44,6 +44,7 @@ Pages:
 | State     | Key                     | Action                                                     |
 | --------- | ----------------------- | ---------------------------------------------------------- |
 | any       | `[` / `]`               | Gap between characters −50 / +50 ms (takes effect from the next token) |
+| any       | `{` / `}`               | Gap between characters −10 / +10 ms                        |
 | any       | `Esc`                   | Close the settings drawer or the summary; otherwise abort the item (not scored) |
 | Ready     | `Space` / `Enter`       | Start an item                                              |
 | Ready     | `S` / `T`               | Settings drawer / session summary                          |
@@ -72,10 +73,11 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 | Content  | Announce type ("postcode" before spelling)              | on        |
 | Speech   | Locale and voice picker, grouped by accent, with a test button | en-GB, default voice |
 | Speech   | Random accent each item                                  | off       |
-| Speech   | Speech rate 0.7–1.3                                      | 1.0       |
+| Speech   | Speech rate 0.5–2.0                                      | 1.0       |
 | Speech   | Zero style (oh / zero / random)                          | random    |
 | Speech   | Grouping "double L" / "triple 7" (never / always / random) | random  |
-| Timing   | Gap between characters 0.2–2.0 s                         | 0.8 s     |
+| Timing   | Timing mode: pause after token / fixed cadence           | pause     |
+| Timing   | Gap between tokens 0–2000 ms in 10 ms steps, slider or exact number | 800 ms |
 | Timing   | Adaptive speed                                           | on        |
 | Timing   | Auto-submit silence 0.5–3 s                              | 1.5 s     |
 | Feedback | Live token boxes while dictating                         | off       |
@@ -101,8 +103,25 @@ After each attempt the gap for the next item changes:
 | Two or more wrong, or a replay used                             | +150 ms |
 | Every third consecutive correct item                            | extra −50 ms |
 
-The gap is clamped to 0.2–2.0 s and persisted, so the next session starts where the last
+The gap is clamped to 0–2.0 s and persisted, so the next session starts where the last
 one ended.
+
+### Timing modes
+
+The gap can be applied in two ways (Settings → Timing):
+
+- **Pause after token** (default): the gap is silence measured from the moment the engine
+  finishes speaking a token. The interval you hear is therefore engine start-up latency +
+  the token's audio + the gap.
+- **Fixed cadence**: the gap is the interval from one token's *start* to the next token's
+  start. The token's own audio and the engine latency are absorbed by the gap, so letters
+  arrive on a steady beat. If a token's audio is longer than the gap, the next token
+  follows immediately.
+
+In both modes 0 ms means "as fast as the voice allows". The floor is set by the speech
+engine: every token is its own utterance, and Chrome needs roughly 50–150 ms to start a
+local voice and noticeably more for a Google network voice. To go faster, pick a local
+voice, raise the speech rate (shorter tokens) and use cadence mode.
 
 ## Project structure
 
@@ -160,6 +179,6 @@ hyphens are "dash" or "hyphen", and every letter is mapped to a spelled-out form
 
 - Desktop Chrome is the target. Firefox and Safari work but their voices differ.
 - Chrome needs a user gesture before the first utterance; pressing Space to start counts.
-- If Chrome stops firing `onend` for an utterance, a fallback timeout keeps the queue
-  moving.
+- If Chrome stops firing `onend` for an utterance, a fallback timeout (about the expected
+  spoken length plus a margin) keeps the queue moving.
 - Keystroke times are kept in refs, not state, so typing never waits on a render.

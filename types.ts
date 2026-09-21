@@ -12,6 +12,12 @@ export type SurnameFlavour = 'british' | 'american' | 'both';
 export type Locale = 'en-GB' | 'en-US' | 'en-AU' | 'en-IE' | 'en-IN' | 'en-ZA' | 'any';
 /** Which column of the pronunciation table (§6.2) is used for spoken letters. */
 export type PronunciationColumn = 'gb' | 'us';
+/**
+ * How gapMs is applied: 'pause' = silence after each token ends;
+ * 'cadence' = interval between one token's start and the next token's start
+ * (the token's own audio counts towards it, so engine latency is absorbed).
+ */
+export type TimingMode = 'pause' | 'cadence';
 
 export const CONCRETE_CONTENT_TYPES: readonly ConcreteContentType[] = ['surname', 'ukPostcode', 'usZip', 'alnum'];
 export const CONTENT_TYPES: readonly ContentType[] = [...CONCRETE_CONTENT_TYPES, 'mixed'];
@@ -24,8 +30,9 @@ export interface Settings {
   mixedTypes: ConcreteContentType[];
   preset: Preset;
   surnameFlavour: SurnameFlavour;
-  /** Pause between characters in ms, 200..2000, step 50. */
+  /** Gap between characters in ms, 0..2000 in 10 ms steps (meaning depends on timingMode). */
   gapMs: number;
+  timingMode: TimingMode;
   /** Auto-adjust gapMs after each item. */
   adaptive: boolean;
   /** Silence after dictation ends before the attempt auto-submits, 500..3000 ms. */

@@ -1,11 +1,15 @@
 /** Gap adjustment rules (§7.2). Pure function: attempt outcome in, next gap out. */
 
-export const GAP_MIN = 200;
+export const GAP_MIN = 0;
 export const GAP_MAX = 2000;
-export const GAP_STEP = 50;
+/** Resolution of the gap: slider step and the grid the persisted value snaps to. */
+export const GAP_STEP = 10;
+/** Keyboard steps: [ and ] are coarse, { and } are fine. */
+export const GAP_KEY_STEP = 50;
+export const GAP_KEY_FINE_STEP = 10;
 export const GAP_DEFAULT = 800;
 
-/** Snap to the 50 ms grid and clamp to the allowed range. */
+/** Snap to the 10 ms grid and clamp to the allowed range. */
 export function clampGap(ms: number): number {
   if (!Number.isFinite(ms)) return GAP_DEFAULT;
   const stepped = Math.round(ms / GAP_STEP) * GAP_STEP;

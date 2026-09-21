@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   CONCRETE_CONTENT_TYPES,
   CONTENT_TYPES,
@@ -10,10 +10,12 @@ import {
   type GroupingMode,
   type Preset,
   type SurnameFlavour,
+  type TimingMode,
   type ZeroStyle,
 } from '@/types';
 import { CONTENT_TYPE_LABELS } from '@/lib/generators';
-import { formatGap, GAP_DEFAULT, GAP_MAX, GAP_MIN, GAP_STEP } from '@/lib/scoring/adaptive';
+import { GAP_DEFAULT, GAP_KEY_FINE_STEP, GAP_KEY_STEP, GAP_MAX, GAP_MIN, GAP_STEP } from '@/lib/scoring/adaptive';
+import { RATE_MAX, RATE_MIN, RATE_STEP } from '@/lib/settings';
 import { PronunciationEditor } from './PronunciationEditor';
 import { useTrainer } from './SettingsProvider';
 import { VoicePicker } from './VoicePicker';
@@ -69,25 +71,72 @@ function Select<T extends string>({ value, options, onChange }: { value: T; opti
   );
 }
 
+/** Exact numeric entry; the draft is committed on Enter or blur so typing is not snapped mid-way. */
+function NumberField({
+  value,
+  min,
+  max,
+  step,
+  decimals,
+  onCommit,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  decimals: number;
+  onCommit: (v: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    const v = Number(draft);
+    if (Number.isFinite(v)) onCommit(Math.min(max, Math.max(min, v)));
+    setDraft(null);
+  };
+  return (
+    <input
+      type="number"
+      inputMode="decimal"
+      min={min}
+      max={max}
+      step={step}
+      value={draft ?? value.toFixed(decimals)}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commit();
+        }
+      }}
+      className="w-20 rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-right font-mono text-xs tabular-nums dark:border-zinc-700 dark:bg-zinc-800"
+    />
+  );
+}
+
 function Range({
   value,
   min,
   max,
   step,
-  format,
+  unit,
+  decimals = 0,
   onChange,
 }: {
   value: number;
   min: number;
   max: number;
   step: number;
-  format: (v: number) => string;
+  unit: string;
+  decimals?: number;
   onChange: (v: number) => void;
 }) {
   return (
     <span className="flex items-center gap-2">
-      <input type="range" className="w-32 accent-blue-600" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
-      <span className="w-14 text-right font-mono text-xs tabular-nums">{format(value)}</span>
+      <input type="range" className="w-24 accent-blue-600" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      <NumberField value={value} min={min} max={max} step={step} decimals={decimals} onCommit={onChange} />
+      <span className="w-5 text-xs text-zinc-500">{unit}</span>
     </span>
   );
 }
@@ -170,8 +219,8 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
           <Row label="Random accent each item" hint="a different English voice per item">
             <Toggle checked={settings.randomAccent} onChange={(randomAccent) => updateSettings({ randomAccent })} />
           </Row>
-          <Row label="Speech rate">
-            <Range value={settings.rate} min={0.7} max={1.3} step={0.05} format={(v) => v.toFixed(2)} onChange={(rate) => updateSettings({ rate })} />
+          <Row label="Speech rate" hint="how fast each token itself is spoken">
+            <Range value={settings.rate} min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} unit="×" decimals={2} onChange={(rate) => updateSettings({ rate })} />
           </Row>
           <Row label="Zero style">
             <Select<ZeroStyle>
@@ -198,21 +247,34 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
         </Group>
 
         <Group title="Timing">
-          <Row label="Gap between characters" hint="[ and ] adjust it any time">
-            <Range value={settings.gapMs} min={GAP_MIN} max={GAP_MAX} step={GAP_STEP} format={formatGap} onChange={(gapMs) => updateSettings({ gapMs })} />
+          <Row
+            label="Timing mode"
+            hint={
+              settings.timingMode === 'cadence'
+                ? 'each token starts a fixed interval after the previous one started'
+                : 'silence after each token has finished speaking'
+            }
+          >
+            <Select<TimingMode>
+              value={settings.timingMode}
+              options={[
+                { value: 'pause', label: 'pause after token' },
+                { value: 'cadence', label: 'fixed cadence' },
+              ]}
+              onChange={(timingMode) => updateSettings({ timingMode })}
+            />
+          </Row>
+          <Row
+            label={settings.timingMode === 'cadence' ? 'Interval between tokens' : 'Gap between tokens'}
+            hint={`[ ] ±${GAP_KEY_STEP} ms · { } ±${GAP_KEY_FINE_STEP} ms · 0 = as fast as the voice allows`}
+          >
+            <Range value={settings.gapMs} min={GAP_MIN} max={GAP_MAX} step={GAP_STEP} unit="ms" onChange={(gapMs) => updateSettings({ gapMs })} />
           </Row>
           <Row label="Adaptive speed">
             <Toggle checked={settings.adaptive} onChange={(adaptive) => updateSettings({ adaptive })} />
           </Row>
           <Row label="Auto-submit silence" hint="after dictation ends">
-            <Range
-              value={settings.autoSubmitSilenceMs}
-              min={500}
-              max={3000}
-              step={100}
-              format={(v) => `${(v / 1000).toFixed(1)} s`}
-              onChange={(autoSubmitSilenceMs) => updateSettings({ autoSubmitSilenceMs })}
-            />
+            <Range value={settings.autoSubmitSilenceMs} min={500} max={3000} step={100} unit="ms" onChange={(autoSubmitSilenceMs) => updateSettings({ autoSubmitSilenceMs })} />
           </Row>
         </Group>
 

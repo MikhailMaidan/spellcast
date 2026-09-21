@@ -29,17 +29,18 @@ describe('adaptGap', () => {
   });
 
   it('clamps to the allowed range', () => {
-    expect(adaptGap({ ...base, gapMs: 250 }).nextGapMs).toBe(200);
+    expect(adaptGap({ ...base, gapMs: 50 }).nextGapMs).toBe(0);
     expect(adaptGap({ ...base, gapMs: 1950, correct: false, errors: 5, streak: 0 }).nextGapMs).toBe(2000);
-    expect(adaptGap({ ...base, gapMs: 250 }).deltaMs).toBe(-50);
+    expect(adaptGap({ ...base, gapMs: 50 }).deltaMs).toBe(-50);
   });
 });
 
 describe('clampGap / formatGap', () => {
-  it('snaps to 50 ms and clamps', () => {
-    expect(clampGap(830)).toBe(850);
-    expect(clampGap(820)).toBe(800);
-    expect(clampGap(50)).toBe(200);
+  it('snaps to 10 ms and clamps', () => {
+    expect(clampGap(835)).toBe(840);
+    expect(clampGap(832)).toBe(830);
+    expect(clampGap(50)).toBe(50);
+    expect(clampGap(-20)).toBe(0);
     expect(clampGap(5000)).toBe(2000);
     expect(clampGap(Number.NaN)).toBe(800);
   });

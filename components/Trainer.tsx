@@ -5,7 +5,7 @@ import type { Attempt, Item, Session, Settings } from '@/types';
 import { playDing } from '@/lib/audio';
 import { CONTENT_TYPE_LABELS, createItem } from '@/lib/generators';
 import { randomSeed } from '@/lib/rng';
-import { adaptGap, clampGap, type AdaptiveResult } from '@/lib/scoring/adaptive';
+import { adaptGap, clampGap, GAP_KEY_FINE_STEP, GAP_KEY_STEP, type AdaptiveResult } from '@/lib/scoring/adaptive';
 import { diffStrings, normaliseForScoring } from '@/lib/scoring/diff';
 import { analyseKeystrokes, computeSessionStats, type SessionStats } from '@/lib/scoring/stats';
 import { exportSessionJSON } from '@/lib/session';
@@ -119,6 +119,9 @@ export default function Trainer() {
     inputRef.current?.focus();
   }, []);
 
+  /** Read fresh for every gap so [ ] { } and drawer changes apply from the next token. */
+  const getTiming = useCallback(() => ({ gapMs: latest.current.settings.gapMs, mode: latest.current.settings.timingMode }), []);
+
   const showToast = useCallback((message: string) => {
     setToast(message);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -133,7 +136,7 @@ export default function Trainer() {
         voice: v,
         lang,
         rate: latest.current.settings.rate,
-        getGapMs: () => latest.current.settings.gapMs,
+        getTiming,
         onTokenStart: (i, t) => {
           tokenStartsRef.current[i] = t;
           setCurrentToken(i);
@@ -148,7 +151,7 @@ export default function Trainer() {
         },
       });
     },
-    [getSpeaker],
+    [getSpeaker, getTiming],
   );
 
   const startItem = useCallback(
@@ -272,11 +275,11 @@ export default function Trainer() {
       voice: st.voice,
       lang: st.item.voiceLang,
       rate: st.settings.rate,
-      getGapMs: () => latest.current.settings.gapMs,
+      getTiming,
       onTokenStart: (i) => setCurrentToken(i),
       onDone: () => setCurrentToken(-1),
     });
-  }, [getSpeaker]);
+  }, [getSpeaker, getTiming]);
 
   const adjustGap = useCallback(
     (delta: number) => {
@@ -323,9 +326,9 @@ export default function Trainer() {
       const chosen = v ?? resolveVoice(latest.current.voices, { voiceURI: null, locale: s.locale }).voice;
       const lang = chosen?.lang || langForLocale(s.locale);
       const tokens = tokenize('JZ0 7LL', { grouping: 'always', zeroStyle: 'oh', column: columnForLang(lang), overrides: s.pronunciationOverrides });
-      getSpeaker().speak({ tokens, voice: chosen, lang, rate: s.rate, getGapMs: () => latest.current.settings.gapMs });
+      getSpeaker().speak({ tokens, voice: chosen, lang, rate: s.rate, getTiming });
     },
-    [getSpeaker],
+    [getSpeaker, getTiming],
   );
 
   const exportJSON = useCallback(() => {
@@ -361,9 +364,11 @@ export default function Trainer() {
         }
         return;
       }
-      if (key === '[' || key === ']') {
+      if (key === '[' || key === ']' || key === '{' || key === '}') {
         e.preventDefault();
-        adjustGap(key === '[' ? -50 : 50);
+        const fine = key === '{' || key === '}';
+        const direction = key === '[' || key === '{' ? -1 : 1;
+        adjustGap(direction * (fine ? GAP_KEY_FINE_STEP : GAP_KEY_STEP));
         return;
       }
       if (key === 'Escape') {
@@ -464,14 +469,14 @@ export default function Trainer() {
 
   const hint =
     phase === 'ready'
-      ? 'Space / Enter start · S settings · T stats · [ ] speed'
+      ? 'Space / Enter start · S settings · T stats · [ ] { } speed'
       : phase === 'dictating'
-        ? `Enter submit${canReplay ? ' · Tab replay' : ''} · Esc abort · [ ] speed`
+        ? `Enter submit${canReplay ? ' · Tab replay' : ''} · Esc abort · [ ] { } speed`
         : 'Enter / Space next · Backspace retry same item · R listen again · S settings · T stats';
 
   return (
     <div className="flex min-h-screen flex-col">
-      <StatsBar stats={stats} gapMs={settings.gapMs} onOpenSettings={openSettings} onOpenStats={openStats} />
+      <StatsBar stats={stats} gapMs={settings.gapMs} timingMode={settings.timingMode} onOpenSettings={openSettings} onOpenStats={openStats} />
 
       {!speechOk && (
         <div className="bg-amber-100 px-6 py-2 text-center text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">

@@ -6,7 +6,6 @@ import { CONCRETE_CONTENT_TYPES, PRESETS, type ConcreteContentType, type Preset 
 import { useTrainer } from '@/components/SettingsProvider';
 import { VoicePicker } from '@/components/VoicePicker';
 import { CONTENT_TYPE_LABELS, createItem } from '@/lib/generators';
-import { formatGap } from '@/lib/scoring/adaptive';
 import { columnForLang, defaultSpokenForm, PRONOUNCEABLE_CHARS } from '@/lib/speech/pronounce';
 import { Speaker } from '@/lib/speech/speaker';
 import { tokenize } from '@/lib/speech/tokenizer';
@@ -62,7 +61,7 @@ export default function DebugPage() {
       voice: resolved.voice,
       lang,
       rate: settings.rate,
-      getGapMs: () => settings.gapMs,
+      getTiming: () => ({ gapMs: settings.gapMs, mode: settings.timingMode }),
       onTokenStart: (i) => setSpeaking(i),
       onDone: () => setSpeaking(-1),
     });
@@ -80,7 +79,7 @@ export default function DebugPage() {
       voice: chosen,
       lang: l,
       rate: settings.rate,
-      getGapMs: () => settings.gapMs,
+      getTiming: () => ({ gapMs: settings.gapMs, mode: settings.timingMode }),
     });
   };
 
@@ -114,7 +113,7 @@ export default function DebugPage() {
               ■ Stop
             </button>
             <span className="text-xs text-zinc-500">
-              gap {formatGap(settings.gapMs)} · rate {settings.rate.toFixed(2)} · grouping {settings.grouping} · zero {settings.zeroStyle} · column {column}
+              {settings.timingMode === 'cadence' ? 'cadence' : 'gap'} {settings.gapMs} ms · rate {settings.rate.toFixed(2)} · grouping {settings.grouping} · zero {settings.zeroStyle} · column {column}
             </span>
           </div>
           <p className="flex flex-wrap gap-1 font-mono text-sm">
