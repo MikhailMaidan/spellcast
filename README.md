@@ -223,8 +223,8 @@ pronunciation setting.
 ## Interface size
 
 The whole layout is rem-based, so one root font size scales everything together. By
-default it grows with the screen width (about double on a wide laptop screen, standard on
-a small one); Settings → Display pins it to a fixed percentage instead.
+default it grows with the screen width (about 1.3× on a wide laptop screen, standard on a
+small one); Settings → Display pins it to a fixed percentage instead.
 
 ## Notes for this prototype
 

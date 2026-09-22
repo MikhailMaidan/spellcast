@@ -7,9 +7,9 @@
 
 html {
   color-scheme: light dark;
-  /* Everything is rem-based, so this one value sizes the whole interface. Roughly double
-     on a wide laptop screen, standard on small ones; Settings → Display overrides it. */
-  font-size: clamp(16px, 1.5vw + 2px, 32px);
+  /* Everything is rem-based, so this one value sizes the whole interface. About 1.3× on a
+     wide laptop screen, standard on small ones; Settings → Display overrides it. */
+  font-size: clamp(14px, 1vw + 1.5px, 21.5px);
 }
 
 body {
