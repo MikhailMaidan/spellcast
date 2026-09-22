@@ -31,12 +31,12 @@ describe('createItem', () => {
   it('adds one introductory phrase per settings', () => {
     const surname = { ...settings, contentType: 'surname' as const, announceType: true, readWholeFirst: true };
     const item = createItem({ seed: 7, settings: surname, now: 1 });
-    expect(item.tokens[0]).toEqual({ text: `Surname, ${item.target}`, chars: '', rateFactor: 1.15 });
+    expect(item.tokens[0]).toEqual({ text: `The surname is ${item.target}.`, chars: '', minPauseAfterMs: 700 });
     expect(item.tokens[1].chars).not.toBe('');
 
     const postcode = { ...settings, contentType: 'ukPostcode' as const, announceType: true, readWholeFirst: true };
     const pc = createItem({ seed: 7, settings: postcode, now: 1 });
-    expect(pc.tokens[0]).toEqual({ text: 'Postcode', chars: '', rateFactor: 1.15 });
+    expect(pc.tokens[0]).toEqual({ text: 'The postcode is', chars: '', minPauseAfterMs: 700 });
     expect(pc.tokens[1].chars).not.toBe('');
 
     const quiet = { ...settings, contentType: 'alnum' as const, announceType: false, readWholeFirst: false };

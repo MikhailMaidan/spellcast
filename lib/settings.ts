@@ -35,7 +35,11 @@ export const DEFAULT_SETTINGS: Settings = {
   ding: false,
   letterStyle: 'plain',
   pronunciationOverrides: {},
+  uiScale: null,
 };
+
+export const UI_SCALE_MIN = 0.75;
+export const UI_SCALE_MAX = 2.5;
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
@@ -92,5 +96,6 @@ export function sanitiseSettings(raw: unknown): Settings {
     ding: bool(r.ding, d.ding),
     letterStyle: oneOf(r.letterStyle, ['plain', 'spelled'] as const, d.letterStyle),
     pronunciationOverrides: overrides,
+    uiScale: typeof r.uiScale === 'number' && Number.isFinite(r.uiScale) ? Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, r.uiScale)) : null,
   };
 }

@@ -79,14 +79,19 @@ describe('tokenize', () => {
     expect(single[0].text).toBe('ell');
   });
 
-  it('prefixes a single quick introductory phrase', () => {
-    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'Surname', readWholeFirst: true });
-    expect(tokens[0]).toEqual({ text: 'Surname, Bell', chars: '', rateFactor: 1.15 });
+  it('prefixes a single natural introductory sentence with a guaranteed pause', () => {
+    const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The surname is', readWholeFirst: true });
+    expect(tokens[0]).toEqual({ text: 'The surname is Bell.', chars: '', minPauseAfterMs: 700 });
     expect(tokens[1].text).toBe('bee');
-    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'Postcode' })[0]).toEqual({ text: 'Postcode', chars: '', rateFactor: 1.15 });
-    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', readWholeFirst: true })[0]).toEqual({ text: 'Bell', chars: '', rateFactor: 1.15 });
+    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The postcode is' })[0]).toEqual({ text: 'The postcode is', chars: '', minPauseAfterMs: 700 });
+    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', readWholeFirst: true })[0]).toEqual({ text: 'Bell.', chars: '', minPauseAfterMs: 700 });
     expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh' })[0].chars).toBe('B');
     expect(introText('Bell')).toBeNull();
+  });
+
+  it('gives the postcode space a pause floor', () => {
+    const tokens = tokenize('SW1A 0AA', { grouping: 'always', zeroStyle: 'oh' });
+    expect(tokens[4]).toMatchObject({ silent: true, pauseAfter: 1.5, minPauseAfterMs: 350 });
   });
 
   it('sends plain letters when asked, keeping digits, symbols and overrides', () => {
@@ -97,7 +102,7 @@ describe('tokenize', () => {
   });
 
   it('summarises the spelling tokens only', () => {
-    const tokens = tokenize('SW1A 0AA', { grouping: 'always', zeroStyle: 'oh', announce: 'Postcode' });
+    const tokens = tokenize('SW1A 0AA', { grouping: 'always', zeroStyle: 'oh', announce: 'The postcode is' });
     expect(spokenSummary(tokens)).toBe('ess · double you · one · ay · oh · double ay');
   });
 

@@ -367,7 +367,7 @@ export default function Trainer() {
         column: columnForLang(lang),
         overrides: s.pronunciationOverrides,
         letterStyle: s.letterStyle,
-        announce: 'Reference',
+        announce: 'The reference is',
       });
       getSpeaker().speak({ tokens, voice: chosen, lang, rate: s.rate, delivery: s.delivery, continuousPause: s.continuousPause, getTiming });
     },
@@ -555,7 +555,7 @@ export default function Trainer() {
         </div>
       )}
 
-      <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col gap-8 px-6 py-12">
+      <main className="mx-auto flex w-full max-w-[45rem] flex-1 flex-col gap-8 px-6 py-12">
         <div className="text-center text-xs uppercase tracking-[0.3em] text-zinc-500">
           {heading}
           {voice && phase !== 'ready' && (

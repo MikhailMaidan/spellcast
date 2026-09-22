@@ -107,7 +107,7 @@ export default function DebugPage() {
   if (!hydrated) return <div className="min-h-screen" aria-busy="true" />;
 
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-8 px-6 py-8">
+    <div className="mx-auto flex w-full max-w-[60rem] flex-col gap-8 px-6 py-8">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Debug: generators, tokens and speech</h1>
         <Link href="/" className="text-sm underline">

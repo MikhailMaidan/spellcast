@@ -44,6 +44,8 @@ export interface SettingsPanelProps {
   onExport: () => void;
 }
 
+const UI_SCALE_OPTIONS = [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5];
+
 const control =
   'rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800';
 const button =
@@ -76,7 +78,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 function Select<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <select className={`${control} max-w-[200px]`} value={value} onChange={(e) => onChange(e.target.value as T)}>
+    <select className={`${control} max-w-[12.5rem]`} value={value} onChange={(e) => onChange(e.target.value as T)}>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}
@@ -173,7 +175,7 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
-        className="drawer-in absolute inset-y-0 right-0 flex w-[360px] max-w-full flex-col gap-6 overflow-y-auto border-l border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="drawer-in absolute inset-y-0 right-0 flex w-[22.5rem] max-w-full flex-col gap-6 overflow-y-auto border-l border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
       >
         <header className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Settings</h2>
@@ -359,6 +361,19 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
         <Group title="Scoring">
           <Row label="Ignore spaces" hint="postcode space optional">
             <Toggle checked={settings.ignoreSpaces} onChange={(ignoreSpaces) => updateSettings({ ignoreSpaces })} />
+          </Row>
+        </Group>
+
+        <Group title="Display">
+          <Row label="Interface size" hint="auto grows with the screen width; everything scales together">
+            <Select<string>
+              value={settings.uiScale === null ? 'auto' : String(settings.uiScale)}
+              options={[
+                { value: 'auto', label: 'auto' },
+                ...UI_SCALE_OPTIONS.map((s) => ({ value: String(s), label: `${Math.round(s * 100)}%` })),
+              ]}
+              onChange={(v) => updateSettings({ uiScale: v === 'auto' ? null : Number(v) })}
+            />
           </Row>
         </Group>
 

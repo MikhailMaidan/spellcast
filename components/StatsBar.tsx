@@ -27,7 +27,7 @@ export function StatsBar({ stats, gapMs, rate, delivery, timingMode, onOpenSetti
         : { label: 'gap', value: formatGap(gapMs), title: 'silence after each token' };
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
-      <div className="mx-auto flex w-full max-w-[720px] items-center justify-between gap-4 px-6 py-3">
+      <div className="mx-auto flex w-full max-w-[45rem] items-center justify-between gap-4 px-6 py-3">
         <h1 className="text-base font-semibold tracking-tight">IELTS Spelling Trainer</h1>
         <div className="flex items-center gap-4 text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
           <span>

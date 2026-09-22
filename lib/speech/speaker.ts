@@ -71,6 +71,8 @@ export interface Segment {
   pauseAfter: number;
   /** Multiplier of the speech rate for this utterance. */
   rateFactor: number;
+  /** Floor in ms for the wait after this utterance. */
+  minPauseAfterMs: number;
   /** Pause-only segment (a pause token with nothing before it). */
   silent?: boolean;
   /** Index of the pause token whose pause follows this segment, for display. */
@@ -80,13 +82,14 @@ export interface Segment {
 /** Group tokens into utterances according to the delivery mode. */
 export function buildSegments(tokens: SpeechToken[], delivery: DeliveryMode, pause: ContinuousPause): Segment[] {
   const segments: Segment[] = [];
-  const attachPause = (tokenIndex: number, multiplier: number) => {
+  const attachPause = (tokenIndex: number, multiplier: number, minPauseAfterMs: number) => {
     const prev = segments[segments.length - 1];
     if (prev && !prev.silent) {
       prev.pauseAfter = multiplier;
+      prev.minPauseAfterMs = minPauseAfterMs;
       prev.pauseToken = tokenIndex;
     } else {
-      segments.push({ text: '', parts: [], pauseAfter: multiplier, rateFactor: 1, silent: true, pauseToken: tokenIndex });
+      segments.push({ text: '', parts: [], pauseAfter: multiplier, rateFactor: 1, minPauseAfterMs, silent: true, pauseToken: tokenIndex });
     }
   };
 
@@ -94,7 +97,7 @@ export function buildSegments(tokens: SpeechToken[], delivery: DeliveryMode, pau
   while (i < tokens.length) {
     const tok = tokens[i];
     if (tok.silent) {
-      attachPause(i, tok.pauseAfter ?? 1);
+      attachPause(i, tok.pauseAfter ?? 1, tok.minPauseAfterMs ?? 0);
       i++;
       continue;
     }
@@ -102,6 +105,7 @@ export function buildSegments(tokens: SpeechToken[], delivery: DeliveryMode, pau
       const parts: SegmentPart[] = [];
       let text = '';
       let pauseAfter = 1;
+      let minPauseAfterMs = 0;
       let j = i;
       while (j < tokens.length) {
         const t = tokens[j];
@@ -121,13 +125,20 @@ export function buildSegments(tokens: SpeechToken[], delivery: DeliveryMode, pau
         parts.push({ token: j, offset: text.length });
         text += t.text;
         pauseAfter = t.pauseAfter ?? 1;
+        minPauseAfterMs = t.minPauseAfterMs ?? 0;
         j++;
       }
-      segments.push({ text, parts, pauseAfter, rateFactor: 1 });
+      segments.push({ text, parts, pauseAfter, rateFactor: 1, minPauseAfterMs });
       i = j;
       continue;
     }
-    segments.push({ text: tok.text, parts: [{ token: i, offset: 0 }], pauseAfter: tok.pauseAfter ?? 1, rateFactor: tok.rateFactor ?? 1 });
+    segments.push({
+      text: tok.text,
+      parts: [{ token: i, offset: 0 }],
+      pauseAfter: tok.pauseAfter ?? 1,
+      rateFactor: tok.rateFactor ?? 1,
+      minPauseAfterMs: tok.minPauseAfterMs ?? 0,
+    });
     i++;
   }
   return segments;
@@ -217,7 +228,7 @@ export class Speaker {
         return;
       }
       if (seg.pauseToken !== undefined) req.onTokenStart?.(seg.pauseToken, this.now());
-      const wanted = gapWaitMs(req.getTiming(), seg.pauseAfter, startedAtMs, endedAtMs);
+      const wanted = Math.max(gapWaitMs(req.getTiming(), seg.pauseAfter, startedAtMs, endedAtMs), seg.minPauseAfterMs);
       // Call speak() early by the engine's measured start latency so the heard silence matches.
       const wait = Math.max(0, wanted - (this.latencyMs ?? 0));
       const lastToken = seg.parts.length ? seg.parts[seg.parts.length - 1].token : (seg.pauseToken ?? 0);
@@ -236,7 +247,7 @@ export class Speaker {
 
       if (seg.silent) {
         req.onTokenStart?.(seg.pauseToken ?? 0, this.now());
-        const wait = seg.pauseAfter * req.getTiming().gapMs;
+        const wait = Math.max(seg.pauseAfter * req.getTiming().gapMs, seg.minPauseAfterMs);
         req.onGap?.(seg.pauseToken ?? 0, wait);
         later(() => step(si + 1), wait);
         return;

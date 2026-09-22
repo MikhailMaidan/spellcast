@@ -23,19 +23,21 @@ export interface TokenizeOptions {
 
 /** Pause multiplier for a space between halves of a postcode. */
 export const SPACE_PAUSE = 1.5;
-/** The intro is spoken a little quicker than the spelling. */
-export const INTRO_RATE_FACTOR = 1.15;
+/** A speaker always pauses noticeably between halves of a postcode, whatever the letter gap. */
+export const SPACE_MIN_PAUSE_MS = 350;
+/** A speaker always pauses noticeably after "The surname is Bell." before spelling it. */
+export const INTRO_MIN_PAUSE_MS = 700;
 
 const ALNUM = /[A-Za-z0-9]/;
 
 /**
- * The short introductory phrase: "Surname, Bell" / "Postcode" / "Bell", or null when
- * neither option is on. One phrase, one utterance, one pause.
+ * The introductory sentence: "The surname is Bell." / "The postcode is" / "Bell.", or null
+ * when neither option is on. One natural sentence, one utterance at normal speed, one pause.
  */
 export function introText(target: string, announce?: string, readWholeFirst?: boolean): string | null {
-  if (announce && readWholeFirst) return `${announce}, ${target}`;
+  if (announce && readWholeFirst) return `${announce} ${target}.`;
   if (announce) return announce;
-  return readWholeFirst ? target : null;
+  return readWholeFirst ? `${target}.` : null;
 }
 
 export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
@@ -51,14 +53,14 @@ export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
 
   const tokens: SpeechToken[] = [];
   const intro = introText(target, opts.announce, opts.readWholeFirst);
-  if (intro) tokens.push({ text: intro, chars: '', rateFactor: INTRO_RATE_FACTOR });
+  if (intro) tokens.push({ text: intro, chars: '', minPauseAfterMs: INTRO_MIN_PAUSE_MS });
 
   let i = 0;
   while (i < target.length) {
     const ch = target[i];
 
     if (ch === ' ') {
-      tokens.push({ text: `<pause ${SPACE_PAUSE}x>`, chars: ' ', silent: true, pauseAfter: SPACE_PAUSE });
+      tokens.push({ text: `<pause ${SPACE_PAUSE}x>`, chars: ' ', silent: true, pauseAfter: SPACE_PAUSE, minPauseAfterMs: SPACE_MIN_PAUSE_MS });
       i++;
       continue;
     }

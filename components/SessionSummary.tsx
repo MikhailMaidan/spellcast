@@ -109,7 +109,7 @@ export function SessionSummary({ open, stats, session, gapMs, onClose, onClear, 
         role="dialog"
         aria-modal="true"
         aria-label="Session summary"
-        className="mx-auto flex w-full max-w-[720px] flex-col gap-6 rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900"
+        className="mx-auto flex w-full max-w-[45rem] flex-col gap-6 rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between">

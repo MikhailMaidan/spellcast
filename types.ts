@@ -82,6 +82,8 @@ export interface Settings {
   letterStyle: LetterStyle;
   /** Pronunciation overrides keyed `${column}:${CHAR}`, e.g. "gb:L" -> "ell". */
   pronunciationOverrides: Record<string, string>;
+  /** Interface size as a multiple of the base size; null = automatic from the screen width. */
+  uiScale: number | null;
 }
 
 export interface SpeechToken {
@@ -93,8 +95,10 @@ export interface SpeechToken {
   pauseAfter?: number;
   /** True for pause-only tokens: nothing is spoken, only the pause is applied. */
   silent?: boolean;
-  /** Multiplier applied to the speech rate for this token (the intro is spoken a little quicker). */
+  /** Multiplier applied to the speech rate for this token. */
   rateFactor?: number;
+  /** Floor in ms for the pause after this token, whatever the gap setting (intro, postcode halves). */
+  minPauseAfterMs?: number;
 }
 
 export interface Item {

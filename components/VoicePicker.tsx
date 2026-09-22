@@ -27,7 +27,7 @@ export function VoicePicker({ voices, voiceURI, locale, onVoiceChange, onLocaleC
     <div className="flex flex-col gap-2">
       <label className="flex items-center justify-between gap-3 text-sm">
         <span>Locale</span>
-        <select className={`${control} max-w-[200px]`} value={locale} onChange={(e) => onLocaleChange(e.target.value as Locale)}>
+        <select className={`${control} max-w-[12.5rem]`} value={locale} onChange={(e) => onLocaleChange(e.target.value as Locale)}>
           {LOCALES.map((l) => (
             <option key={l} value={l}>
               {l === 'any' ? 'any English' : l}

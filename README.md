@@ -72,7 +72,7 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 | Content  | Difficulty preset (easy / medium / hard)                 | medium    |
 | Content  | Surname flavour (British / American / both)              | both      |
 | Content  | Read whole word first (surnames)                         | on        |
-| Content  | Announce type ("Postcode" before spelling, spoken quickly) | on     |
+| Content  | Announce type ("The surname is Bell." before spelling)  | on        |
 | Speech   | Locale and voice picker, grouped by accent and ranked by quality, with a test button | en-GB, best voice |
 | Speech   | Random accent each item                                  | off       |
 | Speech   | Speech rate 0.5–2.0                                      | 1.0       |
@@ -89,6 +89,7 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 | Feedback | Allow one replay                                         | on        |
 | Feedback | Ding on correct                                          | off       |
 | Scoring  | Ignore spaces (postcode space optional)                  | on        |
+| Display  | Interface size: auto (grows with the screen width) or 100–250% | auto |
 | Advanced | Letter pronunciation: plain letters / spelled out        | plain     |
 | Advanced | Pronunciation map editor (en-GB and en-US columns, per-letter overrides) | built-in map |
 | Advanced | Reset speed · Export JSON · Clear history · Reset all settings | —    |
@@ -130,9 +131,11 @@ but sound robotic. "Random accent each item" avoids legacy voices when it can.
 
 ### Delivery and timing
 
-An item is spoken as one short introductory phrase ("Surname, Bell" / "Postcode"),
-spoken slightly quicker than the spelling, then one pause, then the spelling. There are
-two ways to deliver the spelling (Settings → Timing):
+An item is spoken as one natural introductory sentence ("The surname is Bell." / "The
+postcode is") at normal speed, then a pause of at least 0.7 s, then the spelling. The
+pause between the halves of a postcode is at least 0.35 s. Both floors apply whatever the
+gap setting, because a real speaker always pauses there. There are two ways to deliver
+the spelling (Settings → Timing):
 
 - **Precise, token by token** (default): each token is its own utterance, so the gap
   slider sets the pause between letters exactly. *Pause after token* measures the gap
@@ -216,6 +219,12 @@ Every generated string is turned into speech tokens: runs of identical character
 hyphens are "dash" or "hyphen", digits are words, and letters are either the letter itself
 or a spelled-out form ("ay", "double you", "zed"/"zee") depending on the letter
 pronunciation setting.
+
+## Interface size
+
+The whole layout is rem-based, so one root font size scales everything together. By
+default it grows with the screen width (about double on a wide laptop screen, standard on
+a small one); Settings → Display pins it to a fixed percentage instead.
 
 ## Notes for this prototype
 
