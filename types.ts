@@ -69,6 +69,8 @@ export interface Settings {
   announceType: boolean;
   /** Say the whole word once before spelling (surnames only). */
   readWholeFirst: boolean;
+  /** Speech rate for that whole-word reading, independent of the letter rate, 0.5..1.5. */
+  wholeWordRate: number;
   /** Replay key repeats the item once, counted in stats. */
   allowReplay: boolean;
   /** Colour the token boxes while dictating. */
@@ -97,6 +99,8 @@ export interface SpeechToken {
   silent?: boolean;
   /** Multiplier applied to the speech rate for this token. */
   rateFactor?: number;
+  /** Absolute speech rate for this token, overriding the base rate (the whole word is read slowly). */
+  rate?: number;
   /** Floor in ms for the pause after this token, whatever the gap setting (intro, postcode halves). */
   minPauseAfterMs?: number;
 }

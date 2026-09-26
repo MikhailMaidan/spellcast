@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../rng';
-import { introText, spokenSummary, tokenize } from './tokenizer';
+import { introTokens, spokenSummary, tokenize } from './tokenizer';
 
 const plain = (tokens: { text: string; chars: string }[]) => tokens.map(({ text, chars }) => ({ text, chars }));
 
@@ -79,14 +79,20 @@ describe('tokenize', () => {
     expect(single[0].text).toBe('ell');
   });
 
-  it('prefixes a single natural introductory sentence with a guaranteed pause', () => {
+  it('prefixes the announcement and a slow, distinct whole word, each with a pause floor', () => {
     const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The surname is', readWholeFirst: true });
-    expect(tokens[0]).toEqual({ text: 'The surname is Bell.', chars: '', minPauseAfterMs: 700 });
-    expect(tokens[1].text).toBe('bee');
+    expect(tokens[0]).toEqual({ text: 'The surname is', chars: '', minPauseAfterMs: 250 });
+    expect(tokens[1]).toEqual({ text: 'Bell.', chars: '', rate: 0.8, minPauseAfterMs: 700 });
+    expect(tokens[2].text).toBe('bee');
     expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The postcode is' })[0]).toEqual({ text: 'The postcode is', chars: '', minPauseAfterMs: 700 });
-    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', readWholeFirst: true })[0]).toEqual({ text: 'Bell.', chars: '', minPauseAfterMs: 700 });
+    expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', readWholeFirst: true, wholeWordRate: 0.7 })[0]).toEqual({
+      text: 'Bell.',
+      chars: '',
+      rate: 0.7,
+      minPauseAfterMs: 700,
+    });
     expect(tokenize('Bell', { grouping: 'always', zeroStyle: 'oh' })[0].chars).toBe('B');
-    expect(introText('Bell')).toBeNull();
+    expect(introTokens('Bell')).toEqual([]);
   });
 
   it('gives the postcode space a pause floor', () => {

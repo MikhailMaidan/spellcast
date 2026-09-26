@@ -17,27 +17,34 @@ export interface TokenizeOptions {
   letterStyle?: LetterStyle;
   /** Spoken before the spelling, e.g. "The postcode is". */
   announce?: string;
-  /** Say the whole target as a word first (surnames): "Bell, that's". */
+  /** Say the whole target as a word first (surnames), slowly and distinctly. */
   readWholeFirst?: boolean;
+  /** Absolute speech rate for that whole-word reading (default 0.8). */
+  wholeWordRate?: number;
 }
 
 /** Pause multiplier for a space between halves of a postcode. */
 export const SPACE_PAUSE = 1.5;
 /** A speaker always pauses noticeably between halves of a postcode, whatever the letter gap. */
 export const SPACE_MIN_PAUSE_MS = 350;
-/** A speaker always pauses noticeably after "The surname is Bell." before spelling it. */
+/** Short breath between "The surname is" and the name itself. */
+export const ANNOUNCE_MIN_PAUSE_MS = 250;
+/** A speaker always pauses noticeably after the intro before spelling. */
 export const INTRO_MIN_PAUSE_MS = 700;
+/** The whole word is read slowly so an unfamiliar name can be followed; independent of the letter rate. */
+export const WHOLE_WORD_RATE_DEFAULT = 0.8;
 
 const ALNUM = /[A-Za-z0-9]/;
 
 /**
- * The introductory sentence: "The surname is Bell." / "The postcode is" / "Bell.", or null
- * when neither option is on. One natural sentence, one utterance at normal speed, one pause.
+ * The introduction: "The surname is" (normal speed), then the whole word as its own slow,
+ * distinct utterance ("Bell."), each followed by a guaranteed pause. Either part can be off.
  */
-export function introText(target: string, announce?: string, readWholeFirst?: boolean): string | null {
-  if (announce && readWholeFirst) return `${announce} ${target}.`;
-  if (announce) return announce;
-  return readWholeFirst ? `${target}.` : null;
+export function introTokens(target: string, announce?: string, readWholeFirst?: boolean, wholeWordRate = WHOLE_WORD_RATE_DEFAULT): SpeechToken[] {
+  const tokens: SpeechToken[] = [];
+  if (announce) tokens.push({ text: announce, chars: '', minPauseAfterMs: readWholeFirst ? ANNOUNCE_MIN_PAUSE_MS : INTRO_MIN_PAUSE_MS });
+  if (readWholeFirst) tokens.push({ text: `${target}.`, chars: '', rate: wholeWordRate, minPauseAfterMs: INTRO_MIN_PAUSE_MS });
+  return tokens;
 }
 
 export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
@@ -51,9 +58,7 @@ export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
       letterStyle: opts.letterStyle ?? 'spelled',
     });
 
-  const tokens: SpeechToken[] = [];
-  const intro = introText(target, opts.announce, opts.readWholeFirst);
-  if (intro) tokens.push({ text: intro, chars: '', minPauseAfterMs: INTRO_MIN_PAUSE_MS });
+  const tokens: SpeechToken[] = introTokens(target, opts.announce, opts.readWholeFirst, opts.wholeWordRate);
 
   let i = 0;
   while (i < target.length) {

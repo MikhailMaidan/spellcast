@@ -72,6 +72,7 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 | Content  | Difficulty preset (easy / medium / hard)                 | medium    |
 | Content  | Surname flavour (British / American / both)              | both      |
 | Content  | Read whole word first (surnames)                         | on        |
+| Content  | Whole-word speed 0.5–1.5, independent of the letter rate | 0.8       |
 | Content  | Announce type ("The surname is Bell." before spelling)  | on        |
 | Speech   | Locale and voice picker, grouped by accent and ranked by quality, with a test button | en-GB, best voice |
 | Speech   | Random accent each item                                  | off       |
@@ -131,11 +132,12 @@ but sound robotic. "Random accent each item" avoids legacy voices when it can.
 
 ### Delivery and timing
 
-An item is spoken as one natural introductory sentence ("The surname is Bell." / "The
-postcode is") at normal speed, then a pause of at least 0.7 s, then the spelling. The
-pause between the halves of a postcode is at least 0.35 s. Both floors apply whatever the
-gap setting, because a real speaker always pauses there. There are two ways to deliver
-the spelling (Settings → Timing):
+An item opens with the announcement ("The surname is") at normal speed, a short breath,
+then the whole surname as its own utterance read slowly and distinctly (*Whole-word
+speed*, default 0.8, independent of the letter rate), then a pause of at least 0.7 s,
+then the spelling. The pause between the halves of a postcode is at least 0.35 s. These
+floors apply whatever the gap setting, because a real speaker always pauses there. There
+are two ways to deliver the spelling (Settings → Timing):
 
 - **Precise, token by token** (default): each token is its own utterance, so the gap
   slider sets the pause between letters exactly. *Pause after token* measures the gap

@@ -71,6 +71,8 @@ export interface Segment {
   pauseAfter: number;
   /** Multiplier of the speech rate for this utterance. */
   rateFactor: number;
+  /** Absolute speech rate for this utterance, overriding the base rate and factor. */
+  rate?: number;
   /** Floor in ms for the wait after this utterance. */
   minPauseAfterMs: number;
   /** Pause-only segment (a pause token with nothing before it). */
@@ -137,6 +139,7 @@ export function buildSegments(tokens: SpeechToken[], delivery: DeliveryMode, pau
       parts: [{ token: i, offset: 0 }],
       pauseAfter: tok.pauseAfter ?? 1,
       rateFactor: tok.rateFactor ?? 1,
+      rate: tok.rate,
       minPauseAfterMs: tok.minPauseAfterMs ?? 0,
     });
     i++;
@@ -254,7 +257,7 @@ export class Speaker {
       }
 
       const u = new SpeechSynthesisUtterance(seg.text);
-      const rate = Math.min(10, Math.max(0.1, req.rate * seg.rateFactor));
+      const rate = Math.min(10, Math.max(0.1, seg.rate ?? req.rate * seg.rateFactor));
       if (req.voice) u.voice = req.voice;
       u.lang = req.voice?.lang || req.lang;
       u.rate = rate;

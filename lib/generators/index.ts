@@ -94,6 +94,7 @@ export function createItem({ seed, settings, column = 'gb', voiceLang = '', voic
     letterStyle: settings.letterStyle,
     announce: settings.announceType ? ANNOUNCEMENTS[contentType] : undefined,
     readWholeFirst: contentType === 'surname' && settings.readWholeFirst,
+    wholeWordRate: settings.wholeWordRate,
   });
   const createdAt = now ?? Date.now();
   return { id: makeId(seed, createdAt), seed, contentType, target, tokens, createdAt, voiceLang, voiceURI };

@@ -31,8 +31,9 @@ describe('createItem', () => {
   it('adds one introductory phrase per settings', () => {
     const surname = { ...settings, contentType: 'surname' as const, announceType: true, readWholeFirst: true };
     const item = createItem({ seed: 7, settings: surname, now: 1 });
-    expect(item.tokens[0]).toEqual({ text: `The surname is ${item.target}.`, chars: '', minPauseAfterMs: 700 });
-    expect(item.tokens[1].chars).not.toBe('');
+    expect(item.tokens[0]).toEqual({ text: 'The surname is', chars: '', minPauseAfterMs: 250 });
+    expect(item.tokens[1]).toEqual({ text: `${item.target}.`, chars: '', rate: 0.8, minPauseAfterMs: 700 });
+    expect(item.tokens[2].chars).not.toBe('');
 
     const postcode = { ...settings, contentType: 'ukPostcode' as const, announceType: true, readWholeFirst: true };
     const pc = createItem({ seed: 7, settings: postcode, now: 1 });

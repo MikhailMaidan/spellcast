@@ -23,13 +23,15 @@ describe('buildSegments', () => {
     expect(buildSegments(postcode, 'continuous', 'long')[0].text).toBe('ess. double you. one. ay. oh. double ay');
   });
 
-  it('keeps the introductory sentence as its own utterance with a pause floor', () => {
+  it('keeps the announcement and the slow whole word as their own utterances', () => {
     const tokens = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', announce: 'The surname is', readWholeFirst: true });
     const segs = buildSegments(tokens, 'continuous', 'short');
-    expect(segs.map((s) => s.text)).toEqual(['The surname is Bell.', 'bee, ee, double ell']);
-    expect(segs[0]).toMatchObject({ pauseAfter: 1, rateFactor: 1, minPauseAfterMs: 700 });
-    expect(segs[1]).toMatchObject({ rateFactor: 1, minPauseAfterMs: 0 });
-    expect(segs[1].parts.map((p) => p.token)).toEqual([1, 2, 3]);
+    expect(segs.map((s) => s.text)).toEqual(['The surname is', 'Bell.', 'bee, ee, double ell']);
+    expect(segs[0]).toMatchObject({ pauseAfter: 1, rateFactor: 1, minPauseAfterMs: 250 });
+    expect(segs[0].rate).toBeUndefined();
+    expect(segs[1]).toMatchObject({ rate: 0.8, minPauseAfterMs: 700 });
+    expect(segs[2]).toMatchObject({ rateFactor: 1, minPauseAfterMs: 0 });
+    expect(segs[2].parts.map((p) => p.token)).toEqual([2, 3, 4]);
     const plain = tokenize('Bell', { grouping: 'always', zeroStyle: 'oh', letterStyle: 'plain' });
     expect(buildSegments(plain, 'continuous', 'short')[0].text).toBe('B, E, double L');
   });

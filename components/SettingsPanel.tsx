@@ -219,6 +219,11 @@ export function SettingsPanel({ open, onClose, voices, onTestVoice, onClearHisto
           <Row label="Read whole word first" hint="surnames only">
             <Toggle checked={settings.readWholeFirst} onChange={(readWholeFirst) => updateSettings({ readWholeFirst })} />
           </Row>
+          {settings.readWholeFirst && (
+            <Row label="Whole-word speed" hint="the surname read as one word before spelling; independent of the letter rate, slower is clearer">
+              <Range value={settings.wholeWordRate} min={0.5} max={1.5} step={0.05} unit="×" decimals={2} onChange={(wholeWordRate) => updateSettings({ wholeWordRate })} />
+            </Row>
+          )}
           <Row label="Announce type" hint="“postcode:” before spelling">
             <Toggle checked={settings.announceType} onChange={(announceType) => updateSettings({ announceType })} />
           </Row>
