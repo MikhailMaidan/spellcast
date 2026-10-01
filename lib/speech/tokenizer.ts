@@ -5,6 +5,7 @@
 import type { GroupingMode, LetterStyle, PronunciationColumn, SpeechToken, ZeroStyle } from '@/types';
 import type { Rng } from '../rng';
 import { spokenForm } from './pronounce';
+import { spokenYears } from './years';
 
 export interface TokenizeOptions {
   grouping: GroupingMode;
@@ -96,6 +97,15 @@ export function tokenize(target: string, opts: TokenizeOptions): SpeechToken[] {
     i++;
   }
   return tokens;
+}
+
+/**
+ * Years are not spelled digit by digit: the whole year or range is one token spoken the
+ * English way ("eighteen forty-eight", "nineteen forty-one to nineteen forty-five") that
+ * stands for all of its digits.
+ */
+export function tokenizeYears(target: string, opts: { column?: PronunciationColumn; announce?: string } = {}): SpeechToken[] {
+  return [...introTokens(target, opts.announce, false), { text: spokenYears(target, opts.column ?? 'gb'), chars: target }];
 }
 
 /** "ess · double you · one · ay · oh · double ay" — the spelling tokens only. */

@@ -51,6 +51,28 @@ describe('createItem', () => {
     }
   });
 
+  it('speaks years as one English phrase standing for all the digits', () => {
+    const years = { ...settings, contentType: 'year' as const, preset: 'hard' as const, announceType: true };
+    let sawRange = false;
+    let sawSingle = false;
+    for (let seed = 1; seed <= 60; seed++) {
+      const item = createItem({ seed, settings: years, now: 1 });
+      expect(item.contentType).toBe('year');
+      const isRange = item.target.includes('-');
+      expect(item.tokens).toHaveLength(2);
+      expect(item.tokens[0]).toEqual({ text: isRange ? 'The years are' : 'The year is', chars: '', minPauseAfterMs: 700 });
+      expect(item.tokens[1].chars).toBe(item.target);
+      expect(item.tokens[1].text).toMatch(isRange ? /^[a-z -]+ to [a-z -]+$/ : /^[a-z -]+$/);
+      sawRange ||= isRange;
+      sawSingle ||= !isRange;
+    }
+    expect(sawRange && sawSingle).toBe(true);
+
+    const quiet = createItem({ seed: 5, settings: { ...years, announceType: false }, now: 1 });
+    expect(quiet.tokens).toHaveLength(1);
+    expect(quiet.tokens[0].chars).toBe(quiet.target);
+  });
+
   it('sends plain upper-case letters by default', () => {
     const plain = { ...settings, contentType: 'surname' as const, announceType: false, readWholeFirst: false, grouping: 'never' as const };
     const item = createItem({ seed: 3, settings: plain, now: 1 });

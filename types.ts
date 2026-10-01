@@ -3,7 +3,7 @@
  * Everything here is plain data so it can be persisted to localStorage as JSON.
  */
 
-export type ContentType = 'surname' | 'ukPostcode' | 'usZip' | 'alnum' | 'mixed';
+export type ContentType = 'surname' | 'ukPostcode' | 'usZip' | 'alnum' | 'year' | 'mixed';
 export type ConcreteContentType = Exclude<ContentType, 'mixed'>;
 export type Preset = 'easy' | 'medium' | 'hard';
 export type GroupingMode = 'never' | 'always' | 'random';
@@ -33,7 +33,7 @@ export type ContinuousPause = 'none' | 'short' | 'long';
  */
 export type LetterStyle = 'plain' | 'spelled';
 
-export const CONCRETE_CONTENT_TYPES: readonly ConcreteContentType[] = ['surname', 'ukPostcode', 'usZip', 'alnum'];
+export const CONCRETE_CONTENT_TYPES: readonly ConcreteContentType[] = ['surname', 'ukPostcode', 'usZip', 'alnum', 'year'];
 export const CONTENT_TYPES: readonly ContentType[] = [...CONCRETE_CONTENT_TYPES, 'mixed'];
 export const PRESETS: readonly Preset[] = ['easy', 'medium', 'hard'];
 export const LOCALES: readonly Locale[] = ['en-GB', 'en-US', 'en-AU', 'en-IE', 'en-IN', 'en-ZA', 'any'];

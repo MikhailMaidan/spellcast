@@ -13,27 +13,38 @@ import {
   type SurnameFlavour,
 } from '@/types';
 import { deriveSeed, mulberry32, pick, type Rng } from '../rng';
-import { tokenize } from '../speech/tokenizer';
+import { tokenize, tokenizeYears } from '../speech/tokenizer';
 import { generateAlnum } from './alnum';
 import { generateSurname } from './surname';
 import { generateUkPostcode } from './ukPostcode';
 import { generateUsZip } from './usZip';
+import { generateYear } from './year';
 
-/** Spoken before the spelling when announceType is on, as one natural sentence. */
+/** Spoken before the item when announceType is on, as one natural sentence. */
 export const ANNOUNCEMENTS: Record<ConcreteContentType, string> = {
   surname: 'The surname is',
   ukPostcode: 'The postcode is',
   usZip: 'The zip code is',
   alnum: 'The reference is',
+  year: 'The year is',
 };
+
+/** Announcement for a year range such as 1941-1945. */
+export const YEAR_RANGE_ANNOUNCEMENT = 'The years are';
 
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   surname: 'Surname',
   ukPostcode: 'UK postcode',
   usZip: 'US ZIP',
   alnum: 'Reference code',
+  year: 'Year',
   mixed: 'Mixed',
 };
+
+/** Types whose item is spoken as one phrase rather than spelled token by token. */
+export function isSpokenWhole(type: ConcreteContentType): boolean {
+  return type === 'year';
+}
 
 export interface GenerateOptions {
   surnameFlavour?: SurnameFlavour;
@@ -49,6 +60,8 @@ export function generateTarget(type: ConcreteContentType, preset: Preset, rng: R
       return generateUsZip(rng, preset);
     case 'alnum':
       return generateAlnum(rng, preset);
+    case 'year':
+      return generateYear(rng, preset);
   }
 }
 
@@ -85,17 +98,25 @@ export function createItem({ seed, settings, column = 'gb', voiceLang = '', voic
   const rng = mulberry32(seed);
   const contentType = resolveContentType(settings, rng);
   const target = generateTarget(contentType, settings.preset, rng, { surnameFlavour: settings.surnameFlavour });
-  const tokens = tokenize(target, {
-    grouping: settings.grouping,
-    zeroStyle: settings.zeroStyle,
-    column,
-    rng: mulberry32(deriveSeed(seed, TOKENIZER_SALT)),
-    overrides: settings.pronunciationOverrides,
-    letterStyle: settings.letterStyle,
-    announce: settings.announceType ? ANNOUNCEMENTS[contentType] : undefined,
-    readWholeFirst: contentType === 'surname' && settings.readWholeFirst,
-    wholeWordRate: settings.wholeWordRate,
-  });
+
+  const tokens =
+    contentType === 'year'
+      ? tokenizeYears(target, {
+          column,
+          announce: settings.announceType ? (target.includes('-') ? YEAR_RANGE_ANNOUNCEMENT : ANNOUNCEMENTS.year) : undefined,
+        })
+      : tokenize(target, {
+          grouping: settings.grouping,
+          zeroStyle: settings.zeroStyle,
+          column,
+          rng: mulberry32(deriveSeed(seed, TOKENIZER_SALT)),
+          overrides: settings.pronunciationOverrides,
+          letterStyle: settings.letterStyle,
+          announce: settings.announceType ? ANNOUNCEMENTS[contentType] : undefined,
+          readWholeFirst: contentType === 'surname' && settings.readWholeFirst,
+          wholeWordRate: settings.wholeWordRate,
+        });
+
   const createdAt = now ?? Date.now();
   return { id: makeId(seed, createdAt), seed, contentType, target, tokens, createdAt, voiceLang, voiceURI };
 }

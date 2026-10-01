@@ -76,7 +76,14 @@ function loadSettingsRaw(): unknown {
     const legacy = loadJSON<Record<string, unknown> | undefined>(key, undefined);
     if (legacy && typeof legacy === 'object') {
       const migrated = { ...legacy };
-      for (const field of ['delivery', 'continuousPause', 'letterStyle', 'rate', 'voiceURI']) delete migrated[field];
+      // v1 and v2 predate the delivery, letter style and voice ranking changes.
+      if (key !== 'spellcast.settings.v3') {
+        for (const field of ['delivery', 'continuousPause', 'letterStyle', 'rate', 'voiceURI']) delete migrated[field];
+      }
+      // Years were added in v4: switch them on in mixed mode for existing users.
+      if (Array.isArray(migrated.mixedTypes) && !migrated.mixedTypes.includes('year')) {
+        migrated.mixedTypes = [...migrated.mixedTypes, 'year'];
+      }
       return migrated;
     }
   }

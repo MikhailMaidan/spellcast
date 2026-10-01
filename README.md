@@ -8,7 +8,7 @@ The machine dictates a freshly generated string using the browser's built-in spe
 synthesis, you type along, the app scores the attempt with a character-level diff and
 adapts the pause between characters to how you actually performed.
 
-- **No lists, no database.** Every surname, UK postcode, US ZIP and reference code is
+- **No lists, no database.** Every surname, UK postcode, US ZIP, reference code and year is
   generated on the fly from a seeded random number generator, so any item can be retried
   exactly.
 - **Real browser voices.** British, American, Australian and other accents come from
@@ -68,7 +68,7 @@ so replay is on `Tab` (and `Ctrl+R`) during dictation and on `R` in the result v
 
 | Group    | Control                                                  | Default   |
 | -------- | -------------------------------------------------------- | --------- |
-| Content  | Content type (surname / UK postcode / US ZIP / reference / mixed with checkboxes) | mixed |
+| Content  | Content type (surname / UK postcode / US ZIP / reference / year / mixed with checkboxes) | mixed |
 | Content  | Difficulty preset (easy / medium / hard)                 | medium    |
 | Content  | Surname flavour (British / American / both)              | both      |
 | Content  | Read whole word first (surnames)                         | on        |
@@ -216,7 +216,33 @@ types.ts                shared types
 - **Reference codes** come from per-preset templates (`LLDD`, `DDD/LLL-DD`, …); easy
   avoids confusable letters, hard favours them and forces repeated runs.
 
-Every generated string is turned into speech tokens: runs of identical characters become
+- **Years** are single years ("1848", "678", "3178") and ranges ("1941-1945"). Easy is a
+  four-digit year between 1100 and 2029; medium covers any year from 100 to 9999 with a
+  quarter of items being ranges; hard is mostly ranges. Years with a special reading come
+  up on purpose.
+
+### How years are spoken
+
+A year is not spelled digit by digit. The whole year or range is one phrase read the
+English way, and you write the number:
+
+| Written      | Spoken                                              |
+| ------------ | --------------------------------------------------- |
+| 1848         | eighteen forty-eight                                |
+| 1800         | eighteen hundred                                    |
+| 1905         | nineteen oh five                                    |
+| 2000         | two thousand                                        |
+| 2005         | two thousand and five (British) / two thousand five (American) |
+| 2010         | twenty ten                                          |
+| 678          | six seventy-eight                                   |
+| 3178         | thirty-one seventy-eight                            |
+| 1941-1945    | nineteen forty-one to nineteen forty-five           |
+
+The British or American form follows the voice's language. Because a year is a single
+phrase, the gap between tokens and adaptive speed do not apply to it; the closing window
+after the last token gives you the time to type it.
+
+Every other generated string is turned into speech tokens: runs of identical characters become
 "double X" / "triple X" according to the grouping mode, spaces become a 1.5× pause,
 hyphens are "dash" or "hyphen", digits are words, and letters are either the letter itself
 or a spelled-out form ("ay", "double you", "zed"/"zee") depending on the letter

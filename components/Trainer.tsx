@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Attempt, Item, Session, Settings } from '@/types';
 import { playDing } from '@/lib/audio';
-import { CONTENT_TYPE_LABELS, createItem } from '@/lib/generators';
+import { CONTENT_TYPE_LABELS, createItem, isSpokenWhole } from '@/lib/generators';
 import { randomSeed } from '@/lib/rng';
 import {
   adaptGap,
@@ -221,7 +221,7 @@ export default function Trainer() {
     const keystrokeTimes = keystrokesRef.current.map((k) => k.t);
     const keystrokeChars = keystrokesRef.current.map((k) => k.ch);
     const tokenStartTimes = it.tokens.map((_, i) => tokenStartsRef.current[i] ?? null);
-    const lag = analyseKeystrokes({
+    const rawLag = analyseKeystrokes({
       tokens: it.tokens,
       keystrokeTimes,
       keystrokeChars,
@@ -230,6 +230,10 @@ export default function Trainer() {
       gapMs: s.gapMs,
       ignoreSpaces: s.ignoreSpaces,
     });
+    // A year is one spoken phrase written down afterwards: there is no token to fall behind,
+    // and the gap between tokens plays no part, so neither lag nor adaptive speed applies.
+    const wholeSpoken = isSpokenWhole(it.contentType);
+    const lag = wholeSpoken ? { keystrokes: rawLag.keystrokes.map((k) => ({ ...k, lagged: false })), lagged: false } : rawLag;
     const streak = diff.correct ? st.stats.currentStreak + 1 : 0;
 
     const attempt: Attempt = {
@@ -250,7 +254,7 @@ export default function Trainer() {
     };
 
     let adaptation: AdaptiveResult | null = null;
-    if (s.adaptive) {
+    if (s.adaptive && !wholeSpoken) {
       const outcome = { correct: diff.correct, errors: diff.errors, replays: st.replays, lagged: lag.lagged, streak };
       adaptation = s.delivery === 'continuous' ? adaptRate(outcome, s.rate) : adaptGap(outcome, s.gapMs);
       if (adaptation.kind === 'gap' && adaptation.next !== s.gapMs) updateSettings({ gapMs: adaptation.next });
@@ -259,7 +263,13 @@ export default function Trainer() {
     addAttempt(attempt);
     if (diff.correct && s.ding) playDing();
 
-    setResult({ attempt, diff, adaptation, lag });
+    setResult({
+      attempt,
+      diff,
+      adaptation,
+      adaptationNote: s.adaptive && wholeSpoken ? 'years are spoken as one phrase, so the speed is left unchanged' : undefined,
+      lag,
+    });
     setCurrentToken(-1);
     setGapRun(null);
     setPhase('result');

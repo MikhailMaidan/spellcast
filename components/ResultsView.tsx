@@ -10,6 +10,8 @@ export interface ResultState {
   attempt: Attempt;
   diff: DiffResult;
   adaptation: AdaptiveResult | null;
+  /** Why adaptive speed was not applied to this item even though it is on. */
+  adaptationNote?: string;
   lag: LagAnalysis;
 }
 
@@ -65,7 +67,7 @@ export interface ResultsViewProps {
 }
 
 export function ResultsView({ item, result, currentToken }: ResultsViewProps) {
-  const { attempt, diff, adaptation, lag } = result;
+  const { attempt, diff, adaptation, adaptationNote, lag } = result;
   const verdict = diff.correct ? '✔ Correct' : `✘ ${diff.errors} ${diff.errors === 1 ? 'error' : 'errors'}`;
   const spoken = item.tokens.map((t, i) => ({ t, i })).filter(({ t }) => !t.silent && t.chars !== '');
 
@@ -101,6 +103,8 @@ export function ResultsView({ item, result, currentToken }: ResultsViewProps) {
               {adaptation.streakBonus ? ', plus a streak bonus' : ''})
             </span>
           </p>
+        ) : adaptationNote ? (
+          <p>{adaptationNote}</p>
         ) : (
           <p>adaptive speed is off · gap stays at {formatGap(attempt.gapMs)}</p>
         )}
